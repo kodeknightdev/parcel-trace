@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{9EBCA5
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParcelTrace.Contracts", "shared\ParcelTrace.Contracts\ParcelTrace.Contracts.csproj", "{65A7B931-7DF1-4B2C-9C04-57CBFE37584F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParcelTrace.BuildingBlocks", "shared\ParcelTrace.BuildingBlocks\ParcelTrace.BuildingBlocks.csproj", "{F7ED0C7E-5B51-46E5-A6C6-95C745928EC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,8 +22,13 @@ Global
 		{65A7B931-7DF1-4B2C-9C04-57CBFE37584F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65A7B931-7DF1-4B2C-9C04-57CBFE37584F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65A7B931-7DF1-4B2C-9C04-57CBFE37584F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7ED0C7E-5B51-46E5-A6C6-95C745928EC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7ED0C7E-5B51-46E5-A6C6-95C745928EC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7ED0C7E-5B51-46E5-A6C6-95C745928EC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7ED0C7E-5B51-46E5-A6C6-95C745928EC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{65A7B931-7DF1-4B2C-9C04-57CBFE37584F} = {9EBCA59C-A414-4693-B4B0-6514369FEFAE}
+		{F7ED0C7E-5B51-46E5-A6C6-95C745928EC5} = {9EBCA59C-A414-4693-B4B0-6514369FEFAE}
 	EndGlobalSection
 EndGlobal
