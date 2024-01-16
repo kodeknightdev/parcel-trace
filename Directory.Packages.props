@@ -7,6 +7,9 @@
   <!-- ASP.NET Core / EF Core -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
   <!-- Common -->
@@ -14,5 +17,10 @@
     <PackageVersion Include="Serilog.AspNetCore" Version="8.0.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <!-- Health checks -->
+  <ItemGroup>
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.0" />
   </ItemGroup>
 </Project>
