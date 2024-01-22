@@ -28,6 +28,7 @@ app.UseAuthorization();
 
 app.MapParcelHealth();
 app.MapAuthEndpoints();
+app.MapUserEndpoints();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
