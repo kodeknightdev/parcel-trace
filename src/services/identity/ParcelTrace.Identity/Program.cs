@@ -35,6 +35,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Databas
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await db.Database.MigrateAsync();
+    await Seed.RunAsync(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher>(), app.Configuration, app.Logger);
 }
 
 app.Run();
