@@ -22,6 +22,12 @@
   <!-- Health checks -->
   <ItemGroup>
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Messaging / RPC / data -->
+  <ItemGroup>
+    <PackageVersion Include="Confluent.Kafka" Version="2.3.0" />
   </ItemGroup>
 
   <!-- Tests -->
