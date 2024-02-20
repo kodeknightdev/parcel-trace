@@ -7,6 +7,8 @@ namespace ParcelTrace.Shipments.Data;
 public sealed class ShipmentsDbContext(DbContextOptions<ShipmentsDbContext> options) : DbContext(options)
 {
     public DbSet<Shipment> Shipments => Set<Shipment>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +50,25 @@ public sealed class ShipmentsDbContext(DbContextOptions<ShipmentsDbContext> opti
                 p.Property(x => x.PhotoUrl).HasColumnName("pod_photo_url").HasMaxLength(500);
                 p.Property(x => x.DeliveredAt).HasColumnName("pod_delivered_at");
             });
+        });
+
+        modelBuilder.Entity<OutboxMessage>(e =>
+        {
+            e.ToTable("outbox_messages");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Topic).HasMaxLength(100);
+            e.Property(x => x.Key).HasMaxLength(100);
+            e.Property(x => x.EventType).HasMaxLength(100);
+            e.Property(x => x.TraceParent).HasMaxLength(64);
+            e.Property(x => x.LastError).HasMaxLength(1000);
+            e.HasIndex(x => x.CreatedAt).HasFilter("\"PublishedAt\" IS NULL").HasDatabaseName("ix_outbox_unpublished");
+        });
+
+        modelBuilder.Entity<ProcessedMessage>(e =>
+        {
+            e.ToTable("processed_messages");
+            e.HasKey(x => new { x.EventId, x.Consumer });
+            e.Property(x => x.Consumer).HasMaxLength(100);
         });
     }
 

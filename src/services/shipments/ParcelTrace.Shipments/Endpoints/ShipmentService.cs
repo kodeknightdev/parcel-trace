@@ -4,6 +4,7 @@ using Npgsql;
 using ParcelTrace.Contracts;
 using ParcelTrace.Shipments.Data;
 using ParcelTrace.Shipments.Domain;
+using ParcelTrace.Shipments.Outbox;
 
 namespace ParcelTrace.Shipments.Endpoints;
 
@@ -55,6 +56,10 @@ public sealed class ShipmentService(
         {
             shipment.TrackingNumber = trackingNumbers.Next();
             db.Shipments.Add(shipment);
+            db.Enqueue(Topics.ShipmentCreated, shipment.Id.ToString(), EventTypes.ShipmentCreated, new ShipmentCreated(
+                shipment.Id, shipment.TrackingNumber, shipment.CustomerId, shipment.ServiceLevel,
+                shipment.Pickup.Summary, shipment.Dropoff.Summary, shipment.Package.WeightKg,
+                shipment.SlaDueAt, shipment.EtaAt, shipment.CreatedAt));
             try
             {
                 await db.SaveChangesAsync(ct);
@@ -79,6 +84,8 @@ public sealed class ShipmentService(
         }
 
         shipment.Cancel(now, string.IsNullOrWhiteSpace(reason) ? "Cancelled by customer" : reason.Trim());
+        db.Enqueue(Topics.ShipmentCancelled, shipment.Id.ToString(), EventTypes.ShipmentCancelled,
+            new ShipmentCancelled(shipment.Id, shipment.TrackingNumber, shipment.CourierId, shipment.CancelReason!, now));
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Cancelled shipment {TrackingNumber}", shipment.TrackingNumber);
         return shipment;
