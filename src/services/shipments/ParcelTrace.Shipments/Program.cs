@@ -7,6 +7,7 @@ using ParcelTrace.BuildingBlocks.Kafka;
 using ParcelTrace.Shipments.Data;
 using ParcelTrace.Shipments.Domain;
 using ParcelTrace.Shipments.Endpoints;
+using ParcelTrace.Shipments.Messaging;
 using ParcelTrace.Shipments.Outbox;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,8 +31,10 @@ builder.Services.AddSingleton(sp => new QuoteCalculator(
     sp.GetRequiredService<IOptions<ShipmentOptions>>().Value));
 builder.Services.AddSingleton<ITrackingNumberGenerator, TrackingNumberGenerator>();
 builder.Services.AddScoped<ShipmentService>();
+builder.Services.AddScoped<ShipmentEventHandler>();
 
 builder.Services.AddHostedService<OutboxPublisher>();
+builder.Services.AddHostedService<ShipmentsConsumer>();
 
 var app = builder.Build();
 
