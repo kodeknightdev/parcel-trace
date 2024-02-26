@@ -50,6 +50,10 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Databas
 {
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<ShipmentsDbContext>().Database.MigrateAsync();
+    if (app.Configuration.GetValue("Database:Seed", true))
+    {
+        await Seed.RunAsync(scope.ServiceProvider, app.Logger);
+    }
 }
 
 app.Run();
