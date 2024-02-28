@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option csharp_namespace = "ParcelTrace.Protos.Shipments";
+
+package parceltrace.shipments.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Served by the shipments service, consumed by dispatch when it assigns a courier.
+service ShipmentLookup {
+  rpc GetShipment (GetShipmentRequest) returns (ShipmentDetails);
+  rpc GetShipments (GetShipmentsRequest) returns (GetShipmentsResponse);
+}
+
+message GetShipmentRequest {
+  string shipment_id = 1;
+}
+
+message GetShipmentsRequest {
+  repeated string shipment_ids = 1;
+}
+
+message GetShipmentsResponse {
+  repeated ShipmentDetails shipments = 1;
+}
+
+message Location {
+  string line1 = 1;
+  string city = 2;
+  string postal_code = 3;
+  double lat = 4;
+  double lng = 5;
+}
+
+message ShipmentDetails {
+  string shipment_id = 1;
+  string tracking_number = 2;
+  string status = 3;
+  string service_level = 4;
+  double weight_kg = 5;
+  Location pickup = 6;
+  Location dropoff = 7;
+  string recipient_name = 8;
+  string courier_id = 9;
+  google.protobuf.Timestamp sla_due_at = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
