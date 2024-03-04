@@ -7,6 +7,7 @@ using ParcelTrace.BuildingBlocks.Kafka;
 using ParcelTrace.Shipments.Data;
 using ParcelTrace.Shipments.Domain;
 using ParcelTrace.Shipments.Endpoints;
+using ParcelTrace.Shipments.Grpc;
 using ParcelTrace.Shipments.Messaging;
 using ParcelTrace.Shipments.Outbox;
 
@@ -21,6 +22,7 @@ builder.Services.AddHealthChecks().AddNpgSql(connectionString, name: "postgres",
 
 builder.Services.AddParcelJwt(builder.Configuration);
 builder.Services.AddParcelKafka(builder.Configuration);
+builder.Services.AddGrpc();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<ShipmentOptions>(builder.Configuration.GetSection(ShipmentOptions.SectionName));
@@ -45,6 +47,7 @@ app.UseAuthorization();
 app.MapParcelHealth();
 app.MapShipmentEndpoints();
 app.MapDashboardEndpoints();
+app.MapGrpcService<ShipmentLookupService>();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
