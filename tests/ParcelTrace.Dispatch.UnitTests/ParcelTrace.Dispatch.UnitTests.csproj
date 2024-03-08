@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\services\dispatch\ParcelTrace.Dispatch\ParcelTrace.Dispatch.csproj" />
+  </ItemGroup>
+
+</Project>
