@@ -12,6 +12,22 @@ public sealed record AssignRequest(Guid ShipmentId, Guid CourierId);
 
 public sealed record AutoAssignRequest(Guid ShipmentId);
 
+public sealed record RejectOfferRequest(string? Reason);
+
+public sealed record OfferDto(Guid CourierId, string CourierName, double DistanceKm, DateTime OfferedAt, DateTime ExpiresAt, OfferOutcome Outcome, DateTime? RespondedAt, string? Reason)
+{
+    public static OfferDto From(CourierOffer o) => new(o.CourierId, o.CourierName, o.DistanceKm, o.OfferedAt, o.ExpiresAt, o.Outcome, o.RespondedAt, o.Reason);
+}
+
+public sealed record SagaDto(Guid ShipmentId, string TrackingNumber, SagaState State, int Failures, IReadOnlyList<OfferDto> Offers,
+    DateTime CreatedAt, DateTime UpdatedAt, DateTime? EscalatedAt, string? EscalationReason)
+{
+    public static SagaDto From(AssignmentSaga s) => new(s.ShipmentId, s.TrackingNumber, s.State, s.Failures, s.Offers.Select(OfferDto.From).ToList(),
+        s.CreatedAt, s.UpdatedAt, s.EscalatedAt, s.EscalationReason);
+}
+
+public sealed record CourierOfferDto(Guid ShipmentId, string TrackingNumber, string CourierName, double DistanceKm, DateTime ExpiresAt,
+    ServiceLevel ServiceLevel, string PickupCity, string PickupPostalCode, string DropoffCity, double WeightKg);
 
 public sealed record CourierDto(
     Guid Id,

@@ -2,8 +2,10 @@ using MongoDB.Driver;
 using ParcelTrace.BuildingBlocks;
 using ParcelTrace.BuildingBlocks.Auth;
 using ParcelTrace.BuildingBlocks.Health;
+using ParcelTrace.BuildingBlocks.Kafka;
 using ParcelTrace.Dispatch.Data;
 using ParcelTrace.Dispatch.Endpoints;
+using ParcelTrace.Dispatch.Services;
 using ParcelTrace.Dispatch.Shipments;
 using ParcelTrace.Protos.Shipments;
 
@@ -18,6 +20,7 @@ builder.Services.AddSingleton<DispatchDb>();
 builder.Services.AddHealthChecks().AddMongoDb(mongo.ConnectionString, name: "mongodb", tags: [HealthEndpoints.ReadyTag]);
 
 builder.Services.AddParcelJwt(builder.Configuration);
+builder.Services.AddParcelKafka(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services
@@ -29,6 +32,7 @@ builder.Services
         o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(15);
     });
 builder.Services.AddScoped<IShipmentDirectory, GrpcShipmentDirectory>();
+builder.Services.AddScoped<AssignmentService>();
 
 var app = builder.Build();
 
@@ -38,6 +42,7 @@ app.UseAuthorization();
 
 app.MapParcelHealth();
 app.MapCourierEndpoints();
+app.MapDispatchEndpoints();
 
 var db = app.Services.GetRequiredService<DispatchDb>();
 await db.EnsureIndexesAsync();

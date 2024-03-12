@@ -28,6 +28,7 @@ public sealed class DispatchDb
         Assignments = Database.GetCollection<Assignment>("assignments");
         Pending = Database.GetCollection<PendingShipment>("pending_shipments");
         Processed = Database.GetCollection<ProcessedEvent>("processed_events");
+        Sagas = Database.GetCollection<AssignmentSaga>("assignment_sagas");
     }
 
     public IMongoDatabase Database { get; }
@@ -35,6 +36,7 @@ public sealed class DispatchDb
     public IMongoCollection<Assignment> Assignments { get; }
     public IMongoCollection<PendingShipment> Pending { get; }
     public IMongoCollection<ProcessedEvent> Processed { get; }
+    public IMongoCollection<AssignmentSaga> Sagas { get; }
 
     public static void RegisterConventions()
     {
@@ -81,6 +83,16 @@ public sealed class DispatchDb
         await Pending.Indexes.CreateOneAsync(
             new CreateIndexModel<PendingShipment>(Builders<PendingShipment>.IndexKeys.Ascending(p => p.QueuedAt),
                 new CreateIndexOptions { Name = "ix_queued_at" }), cancellationToken: ct);
+
+        await Sagas.Indexes.CreateManyAsync(
+        [
+            // expired offers
+            new CreateIndexModel<AssignmentSaga>(Builders<AssignmentSaga>.IndexKeys.Ascending(s => s.State).Ascending("offers.expiresAt"),
+                new CreateIndexOptions { Name = "ix_state_offer_expiry" }),
+            // offers per courier
+            new CreateIndexModel<AssignmentSaga>(Builders<AssignmentSaga>.IndexKeys.Ascending("offers.courierId").Ascending(s => s.State),
+                new CreateIndexOptions { Name = "ix_offer_courier" })
+        ], ct);
 
         await Processed.Indexes.CreateOneAsync(
             new CreateIndexModel<ProcessedEvent>(Builders<ProcessedEvent>.IndexKeys.Ascending(p => p.ProcessedAt),
