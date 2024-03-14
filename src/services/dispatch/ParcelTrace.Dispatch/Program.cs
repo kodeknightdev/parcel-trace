@@ -5,6 +5,7 @@ using ParcelTrace.BuildingBlocks.Health;
 using ParcelTrace.BuildingBlocks.Kafka;
 using ParcelTrace.Dispatch.Data;
 using ParcelTrace.Dispatch.Endpoints;
+using ParcelTrace.Dispatch.Messaging;
 using ParcelTrace.Dispatch.Services;
 using ParcelTrace.Dispatch.Shipments;
 using ParcelTrace.Protos.Shipments;
@@ -14,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults("dispatch", typeof(CourierRequestValidator));
 
 builder.Services.Configure<MongoOptions>(builder.Configuration.GetSection(MongoOptions.SectionName));
+builder.Services.Configure<DispatchOptions>(builder.Configuration.GetSection(DispatchOptions.SectionName));
 var mongo = builder.Configuration.GetSection(MongoOptions.SectionName).Get<MongoOptions>() ?? new MongoOptions();
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongo.ConnectionString));
 builder.Services.AddSingleton<DispatchDb>();
@@ -33,6 +35,9 @@ builder.Services
     });
 builder.Services.AddScoped<IShipmentDirectory, GrpcShipmentDirectory>();
 builder.Services.AddScoped<AssignmentService>();
+builder.Services.AddScoped<DispatchEventHandler>();
+
+builder.Services.AddHostedService<DispatchConsumer>();
 
 var app = builder.Build();
 
