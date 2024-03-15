@@ -38,6 +38,7 @@ builder.Services.AddScoped<AssignmentService>();
 builder.Services.AddScoped<DispatchEventHandler>();
 
 builder.Services.AddHostedService<DispatchConsumer>();
+builder.Services.AddHostedService<AssignmentSagaWorker>();
 
 var app = builder.Build();
 
