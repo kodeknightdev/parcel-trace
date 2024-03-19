@@ -52,6 +52,10 @@ app.MapDispatchEndpoints();
 
 var db = app.Services.GetRequiredService<DispatchDb>();
 await db.EnsureIndexesAsync();
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue("Database:Seed", true))
+{
+    await Seed.RunAsync(db, app.Logger);
+}
 
 app.Run();
 
