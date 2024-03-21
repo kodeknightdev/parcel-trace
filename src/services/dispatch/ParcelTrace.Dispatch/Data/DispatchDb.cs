@@ -45,6 +45,10 @@ public sealed class DispatchDb
             return;
         }
 
+        // driver 2.x defaults to the legacy C# guid format
+#pragma warning disable CS0618
+        BsonDefaults.GuidRepresentationMode = GuidRepresentationMode.V3;
+#pragma warning restore CS0618
         BsonSerializer.TryRegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
         ConventionRegistry.Register("parcel-trace", new ConventionPack
         {
