@@ -18,12 +18,13 @@ class HttpError extends Error {
 const fuzz = (value) => Math.round(value * 100) / 100;
 
 class TrackingService {
-  constructor({ repo, locations, etaCache, board, publisher, config, log, now = () => new Date() }) {
+  constructor({ repo, locations, etaCache, board, publisher, eta, config, log, now = () => new Date() }) {
     this.repo = repo;
     this.locations = locations;
     this.etaCache = etaCache;
     this.board = board;
     this.publisher = publisher;
+    this.eta = eta;
     this.config = config;
     this.log = log;
     this.now = now;
@@ -119,7 +120,10 @@ class TrackingService {
       isTerminal(shipment.status) ? null : this.etaCache.get(shipment.shipmentId),
     ]);
 
-    const eta = cachedEta;
+    let eta = cachedEta;
+    if (courierLocation && this.isStale(eta?.calculatedAt)) {
+      eta = (await this.refreshEta(shipment, courierLocation)) ?? eta;
+    }
 
     return {
       trackingNumber: shipment.trackingNumber,
@@ -143,6 +147,22 @@ class TrackingService {
 
   boardView() {
     return this.board.read(dayOf(this.now()), this.locations);
+  }
+
+  isStale(calculatedAt) {
+    return !calculatedAt || this.now() - new Date(calculatedAt) > this.config.eta.staleAfterMs;
+  }
+
+  async refreshEta(shipment, location) {
+    const estimate = await this.eta.estimate({
+      origin: { lat: location.lat, lng: location.lng },
+      destination: { lat: shipment.dropoff.lat, lng: shipment.dropoff.lng },
+      serviceLevel: shipment.serviceLevel,
+    });
+    if (!estimate) return null;
+    const eta = { etaAt: estimate.etaAt, minutesRemaining: estimate.minutes, distanceKm: estimate.distanceKm, calculatedAt: this.now().toISOString() };
+    await this.etaCache.put(shipment.shipmentId, eta);
+    return eta;
   }
 
   // kafka handlers

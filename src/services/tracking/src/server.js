@@ -7,6 +7,7 @@ const { TrackingRepository } = require('./repository');
 const { LocationStore } = require('./locationStore');
 const { EtaCache } = require('./etaCache');
 const { DispatchBoard } = require('./readModels');
+const { EtaClient } = require('./etaClient');
 const { TrackingService } = require('./trackingService');
 const { createKafka, KafkaPublisher, KafkaConsumer, NullPublisher } = require('./kafka');
 const { buildHandlers } = require('./consumers');
@@ -38,9 +39,10 @@ async function main() {
   });
 
   // logger comes from fastify, so wire these after buildApp
-  const service = new TrackingService({ ...deps, etaCache, board, publisher: { publish: (...args) => publisher.publish(...args) } });
+  const service = new TrackingService({ ...deps, etaCache, board, publisher: { publish: (...args) => publisher.publish(...args) }, eta: null });
   const app = await buildApp({ ...deps, service, readiness });
   service.log = app.log;
+  service.eta = new EtaClient({ ...config.eta, log: app.log });
 
   await migrate(pool, app.log);
 
@@ -57,6 +59,7 @@ async function main() {
   const close = async () => {
     app.log.info('shutting down');
     await app.close();
+    service.eta.shutdown();
     await consumer?.stop().catch(() => {});
     await publisher?.disconnect?.().catch(() => {});
     await redis.quit().catch(() => {});
