@@ -7,6 +7,7 @@ using ParcelTrace.BuildingBlocks.Kafka;
 using ParcelTrace.Shipments.Data;
 using ParcelTrace.Shipments.Domain;
 using ParcelTrace.Shipments.Endpoints;
+using ParcelTrace.Shipments.Eta;
 using ParcelTrace.Shipments.Grpc;
 using ParcelTrace.Shipments.Messaging;
 using ParcelTrace.Shipments.Outbox;
@@ -34,6 +35,16 @@ builder.Services.AddSingleton(sp => new QuoteCalculator(
 builder.Services.AddSingleton<ITrackingNumberGenerator, TrackingNumberGenerator>();
 builder.Services.AddScoped<ShipmentService>();
 builder.Services.AddScoped<ShipmentEventHandler>();
+
+builder.Services.AddHttpClient<IEtaClient, EtaClient>(c =>
+        c.BaseAddress = new Uri(builder.Configuration["Services:Eta"] ?? "http://localhost:5105"))
+    .AddStandardResilienceHandler(o =>
+    {
+        // nice to have, don't hold up booking
+        o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(2);
+        o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(6);
+        o.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(10);
+    });
 
 builder.Services.AddHostedService<OutboxPublisher>();
 builder.Services.AddHostedService<ShipmentsConsumer>();

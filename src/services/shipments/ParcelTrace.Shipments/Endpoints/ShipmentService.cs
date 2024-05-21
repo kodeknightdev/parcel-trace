@@ -4,6 +4,7 @@ using Npgsql;
 using ParcelTrace.Contracts;
 using ParcelTrace.Shipments.Data;
 using ParcelTrace.Shipments.Domain;
+using ParcelTrace.Shipments.Eta;
 using ParcelTrace.Shipments.Outbox;
 
 namespace ParcelTrace.Shipments.Endpoints;
@@ -12,6 +13,7 @@ public sealed class ShipmentService(
     ShipmentsDbContext db,
     QuoteCalculator quotes,
     ITrackingNumberGenerator trackingNumbers,
+    IEtaClient eta,
     IOptions<ShipmentOptions> options,
     TimeProvider clock,
     ILogger<ShipmentService> logger)
@@ -51,6 +53,13 @@ public sealed class ShipmentService(
             CancelDeadline = now.AddMinutes(options.Value.CancelWindowMinutes),
             SlaDueAt = now.AddHours(quote.SlaHours)
         };
+
+        // rough ETA for now, pings refine it later
+        var estimate = await eta.EstimateAsync(new EtaEstimateRequest(shipment.Pickup.Point, shipment.Dropoff.Point, shipment.ServiceLevel, now), ct);
+        if (estimate is not null)
+        {
+            shipment.UpdateEta(estimate.EtaAt, now);
+        }
 
         for (var attempt = 1; ; attempt++)
         {

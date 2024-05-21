@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ParcelTrace.Contracts;
 using ParcelTrace.Shipments.Domain;
 using ParcelTrace.Shipments.Endpoints;
+using ParcelTrace.Shipments.Eta;
 
 namespace ParcelTrace.Shipments.Data;
 
@@ -28,9 +29,11 @@ public static class Seed
             return;
         }
 
+        // eta may not be up yet when seeding
         var service = new ShipmentService(db,
             services.GetRequiredService<QuoteCalculator>(),
             services.GetRequiredService<ITrackingNumberGenerator>(),
+            new NoEtaClient(),
             services.GetRequiredService<IOptions<ShipmentOptions>>(),
             services.GetRequiredService<TimeProvider>(),
             services.GetRequiredService<ILogger<ShipmentService>>());
@@ -60,5 +63,10 @@ public static class Seed
         }
 
         logger.LogInformation("Seeded {Count} demo shipments", demo.Length);
+    }
+
+    private sealed class NoEtaClient : IEtaClient
+    {
+        public Task<EtaEstimate?> EstimateAsync(EtaEstimateRequest request, CancellationToken ct) => Task.FromResult<EtaEstimate?>(null);
     }
 }
