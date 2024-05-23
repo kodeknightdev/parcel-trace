@@ -37,6 +37,11 @@
     <PackageVersion Include="Google.Protobuf" Version="3.25.1" />
   </ItemGroup>
 
+  <!-- Gateway -->
+  <ItemGroup>
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
+  </ItemGroup>
+
   <!-- Tests -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
