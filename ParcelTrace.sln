@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParcelTrace.Dispatch.UnitTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParcelTrace.Identity.Tests", "tests\ParcelTrace.Identity.Tests\ParcelTrace.Identity.Tests.csproj", "{9B97AFA1-B885-4261-B3CC-5E5DAE4A4F4E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParcelTrace.Gateway.Tests", "tests\ParcelTrace.Gateway.Tests\ParcelTrace.Gateway.Tests.csproj", "{C109D562-A704-4AF0-93F7-5DD9AA0CDA7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{9B97AFA1-B885-4261-B3CC-5E5DAE4A4F4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B97AFA1-B885-4261-B3CC-5E5DAE4A4F4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B97AFA1-B885-4261-B3CC-5E5DAE4A4F4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C109D562-A704-4AF0-93F7-5DD9AA0CDA7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C109D562-A704-4AF0-93F7-5DD9AA0CDA7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C109D562-A704-4AF0-93F7-5DD9AA0CDA7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C109D562-A704-4AF0-93F7-5DD9AA0CDA7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{65A7B931-7DF1-4B2C-9C04-57CBFE37584F} = {9EBCA59C-A414-4693-B4B0-6514369FEFAE}
@@ -98,5 +104,6 @@ Global
 		{9C6C3DED-48B3-4038-8533-FBDF9643C84C} = {BF2DECA5-3240-4A69-8966-E32C36B4A8CB}
 		{3CB4338A-1FBD-4CB4-8952-51E93B519F32} = {BF2DECA5-3240-4A69-8966-E32C36B4A8CB}
 		{9B97AFA1-B885-4261-B3CC-5E5DAE4A4F4E} = {BF2DECA5-3240-4A69-8966-E32C36B4A8CB}
+		{C109D562-A704-4AF0-93F7-5DD9AA0CDA7D} = {BF2DECA5-3240-4A69-8966-E32C36B4A8CB}
 	EndGlobalSection
 EndGlobal
