@@ -1,0 +1,30 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+<section class="hero p-4 p-md-5 mb-4">
+    <h1 class="display-6 fw-semibold">Where is my parcel?</h1>
+    <p class="lead mb-4">Same-day and next-day courier delivery with live tracking.</p>
+    <form method="get" asp-page="/Track" class="row g-2" style="max-width: 560px">
+        <div class="col-sm-8">
+            <input name="tn" class="form-control form-control-lg tracking-number" placeholder="PT-2024-ABC234" required pattern="[Pp][Tt]-\d{4}-[A-Za-z0-9]{6}" aria-label="Tracking number" />
+        </div>
+        <div class="col-sm-4 d-grid">
+            <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Track</button>
+        </div>
+    </form>
+</section>
+
+<div class="row g-3">
+    @if (User.IsInRole(Roles.Dispatcher) || User.IsInRole(Roles.Admin))
+    {
+        <div class="col-md-4"><a class="card card-body h-100 text-decoration-none" asp-page="/Dispatch/Index"><h2 class="h5"><i class="bi bi-speedometer2"></i> Dispatcher dashboard</h2><p class="text-muted mb-0">Unassigned parcels, courier availability and delays.</p></a></div>
+    }
+    @if (User.IsInRole(Roles.Courier))
+    {
+        <div class="col-md-4"><a class="card card-body h-100 text-decoration-none" asp-page="/Courier/Index"><h2 class="h5"><i class="bi bi-bicycle"></i> Today's route</h2><p class="text-muted mb-0">Your stops, pick-ups and deliveries.</p></a></div>
+    }
+    <div class="col-md-4"><a class="card card-body h-100 text-decoration-none" asp-page="/Shipments/Create"><h2 class="h5"><i class="bi bi-send"></i> Send a parcel</h2><p class="text-muted mb-0">Book Standard (48h) or Express (8h) delivery.</p></a></div>
+    <div class="col-md-4"><a class="card card-body h-100 text-decoration-none" asp-page="/Quote"><h2 class="h5"><i class="bi bi-calculator"></i> Price check</h2><p class="text-muted mb-0">Distance, weight and size based pricing.</p></a></div>
+</div>

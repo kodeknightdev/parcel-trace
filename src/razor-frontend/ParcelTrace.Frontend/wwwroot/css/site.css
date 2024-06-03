@@ -1,0 +1,69 @@
+body {
+  background: #f6f7f9;
+}
+
+.hero {
+  background: linear-gradient(135deg, #1f2937, #374151);
+  color: #fff;
+  border-radius: 1rem;
+}
+
+.card {
+  border: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.stat .value {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.stat .label {
+  color: #6b7280;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.map {
+  height: 360px;
+  border-radius: 0.5rem;
+}
+
+.map-picker {
+  height: 300px;
+  border-radius: 0.5rem;
+  cursor: crosshair;
+}
+
+.timeline {
+  border-left: 2px solid #d1d5db;
+  margin-left: 0.5rem;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 0 0 1rem 1.25rem;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -0.45rem;
+  top: 0.3rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: #6b7280;
+  border: 2px solid #fff;
+}
+
+.timeline-item:first-child::before {
+  background: #0d6efd;
+}
+
+.tracking-number {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+}
