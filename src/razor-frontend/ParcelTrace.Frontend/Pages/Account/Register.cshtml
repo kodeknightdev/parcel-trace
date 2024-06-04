@@ -1,0 +1,30 @@
+@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Create account";
+}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h1 class="h3 mb-3">Create a customer account</h1>
+        <form method="post" class="card card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.DisplayName">Name</label>
+                <input class="form-control" asp-for="Input.DisplayName" autocomplete="name" />
+                <span class="text-danger small" asp-validation-for="Input.DisplayName"></span>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.Email"></label>
+                <input class="form-control" asp-for="Input.Email" autocomplete="email" />
+                <span class="text-danger small" asp-validation-for="Input.Email"></span>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.Password"></label>
+                <input class="form-control" asp-for="Input.Password" autocomplete="new-password" />
+                <div class="form-text">At least 8 characters with a letter and a digit.</div>
+                <span class="text-danger small" asp-validation-for="Input.Password"></span>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Create account</button>
+        </form>
+    </div>
+</div>
