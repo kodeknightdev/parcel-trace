@@ -1,0 +1,80 @@
+@page
+@model TrackModel
+@{
+    ViewData["Title"] = Model.Tracking?.TrackingNumber ?? "Track a parcel";
+}
+@section Head {
+    <partial name="_LeafletHead" />
+}
+
+<form method="get" class="row g-2 mb-4" style="max-width: 560px">
+    <div class="col-sm-8">
+        <input name="tn" value="@Model.Tn" class="form-control tracking-number" placeholder="PT-2024-ABC234" required aria-label="Tracking number" />
+    </div>
+    <div class="col-sm-4 d-grid"><button class="btn btn-primary" type="submit">Track</button></div>
+</form>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-warning">@Model.Error</div>
+}
+
+@if (Model.Tracking is { } t)
+{
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="text-muted small">Tracking number</div>
+                            <div class="h4 tracking-number mb-1">@t.TrackingNumber</div>
+                            <div class="text-muted">@t.From &rarr; @(t.To is { } to ? $"{to.City} {to.PostalCode}" : "–") · @t.ServiceLevel</div>
+                        </div>
+                        <span id="status-badge" data-status="@t.Status"><partial name="_StatusBadge" model="t.Status" /></span>
+                    </div>
+                    <hr />
+                    <dl class="row mb-0" id="summary">
+                        <dt class="col-5">Estimated arrival</dt>
+                        <dd class="col-7" id="eta">@(t.Eta is { } eta ? Display.Eta(eta) : t.DeliveredAt is null ? "Calculating…" : "–")</dd>
+                        <dt class="col-5">Delivery promise</dt>
+                        <dd class="col-7">@Display.Local(t.SlaDueAt) @if (t.IsDelayed) { <span class="badge text-bg-danger ms-1">Delayed</span> }</dd>
+                        @if (t.CourierName is not null)
+                        {
+                            <dt class="col-5">Courier</dt>
+                            <dd class="col-7">@t.CourierName</dd>
+                        }
+                        @if (t.DeliveredTo is not null)
+                        {
+                            <dt class="col-5">Delivered to</dt>
+                            <dd class="col-7">@t.DeliveredTo, @Display.Local(t.DeliveredAt)</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+            @if (Model.Missing.Count > 0)
+            {
+                <div class="alert alert-light small mt-3 mb-0">Some details are temporarily unavailable (@string.Join(", ", Model.Missing)).</div>
+            }
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h2 class="h6 text-muted text-uppercase">History</h2>
+                    <div id="timeline"><partial name="_Timeline" model="t.Timeline" /></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div id="map" class="map"
+                 data-dest-lat="@t.To?.Lat" data-dest-lng="@t.To?.Lng"
+                 data-courier-lat="@t.LastLocation?.Lat" data-courier-lng="@t.LastLocation?.Lng"
+                 data-poll-url="@Url.Page("/Track", "Data", new { tn = t.TrackingNumber })"></div>
+            <p class="small text-muted mt-2" id="last-seen">
+                @(t.LastLocation is { } loc ? $"Courier last seen {Display.Local(loc.RecordedAt)}" : "The courier's position shows here once your parcel is on its way.")
+            </p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/track.js" asp-append-version="true"></script>
+}

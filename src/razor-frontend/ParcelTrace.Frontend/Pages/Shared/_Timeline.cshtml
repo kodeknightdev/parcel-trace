@@ -1,0 +1,16 @@
+@model IReadOnlyList<TimelineEntry>
+<ol class="timeline list-unstyled mb-0">
+    @foreach (var entry in Model.Reverse())
+    {
+        <li class="timeline-item">
+            <div class="d-flex justify-content-between">
+                <partial name="_StatusBadge" model="entry.Status" />
+                <small class="text-muted">@Display.Local(entry.OccurredAt)</small>
+            </div>
+            @if (!string.IsNullOrEmpty(entry.Note))
+            {
+                <div class="small mt-1">@entry.Note</div>
+            }
+        </li>
+    }
+</ol>
