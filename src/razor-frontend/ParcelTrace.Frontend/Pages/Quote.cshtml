@@ -1,0 +1,48 @@
+@page
+@model QuoteModel
+@{
+    ViewData["Title"] = "Get a quote";
+}
+<h1 class="h3 mb-3">Price check</h1>
+<div class="row g-4">
+    <div class="col-lg-7">
+        <form method="post" class="card card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Input.From">From</label>
+                    <select class="form-select" asp-for="Input.From" asp-items="QuoteModel.PlaceOptions"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Input.To">To</label>
+                    <select class="form-select" asp-for="Input.To" asp-items="QuoteModel.PlaceOptions"></select>
+                </div>
+                <div class="col-md-3"><label class="form-label" asp-for="Input.WeightKg">Weight (kg)</label><input class="form-control" asp-for="Input.WeightKg" /></div>
+                <div class="col-md-3"><label class="form-label" asp-for="Input.LengthCm">Length (cm)</label><input class="form-control" asp-for="Input.LengthCm" /></div>
+                <div class="col-md-3"><label class="form-label" asp-for="Input.WidthCm">Width (cm)</label><input class="form-control" asp-for="Input.WidthCm" /></div>
+                <div class="col-md-3"><label class="form-label" asp-for="Input.HeightCm">Height (cm)</label><input class="form-control" asp-for="Input.HeightCm" /></div>
+                <div class="col-12">
+                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" asp-for="Input.ServiceLevel" value="Standard" id="std" /><label class="form-check-label" for="std">Standard (48h)</label></div>
+                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" asp-for="Input.ServiceLevel" value="Express" id="exp" /><label class="form-check-label" for="exp">Express (8h)</label></div>
+                </div>
+            </div>
+            <button class="btn btn-primary mt-3" type="submit">Calculate</button>
+        </form>
+    </div>
+    <div class="col-lg-5">
+        @if (Model.Result is { } q)
+        {
+            <div class="card card-body">
+                <div class="text-muted small">@q.ServiceLevel · @q.DistanceKm km · billable @q.BillableWeightKg kg</div>
+                <div class="display-6 fw-semibold my-2">@Display.Money(q.Total, q.Currency)</div>
+                <table class="table table-sm mb-0">
+                    <tr><td>Base</td><td class="text-end">@Display.Money(q.BaseFee, q.Currency)</td></tr>
+                    <tr><td>Distance</td><td class="text-end">@Display.Money(q.DistanceFee, q.Currency)</td></tr>
+                    <tr><td>Weight</td><td class="text-end">@Display.Money(q.WeightFee, q.Currency)</td></tr>
+                    <tr><td>Fuel surcharge</td><td class="text-end">@Display.Money(q.FuelSurcharge, q.Currency)</td></tr>
+                </table>
+                <p class="small text-muted mt-2 mb-0">Delivered within @q.SlaHours hours of booking.</p>
+            </div>
+        }
+    </div>
+</div>
