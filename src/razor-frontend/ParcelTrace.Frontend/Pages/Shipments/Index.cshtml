@@ -1,0 +1,41 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "My shipments";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">My shipments</h1>
+    <a class="btn btn-primary" asp-page="Create"><i class="bi bi-plus-lg"></i> Send a parcel</a>
+</div>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-warning">@Model.Error</div>
+}
+else if (Model.Shipments.Count == 0)
+{
+    <div class="card card-body text-center text-muted">No shipments yet. <a asp-page="Create">Book your first one</a>.</div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Tracking number</th><th>To</th><th>Service</th><th>Status</th><th>ETA</th><th class="text-end">Price</th></tr></thead>
+                <tbody>
+                @foreach (var s in Model.Shipments)
+                {
+                    <tr>
+                        <td><a class="tracking-number" asp-page="Details" asp-route-id="@s.Id">@s.TrackingNumber</a></td>
+                        <td>@s.Recipient.Name<div class="small text-muted">@s.Dropoff.Line1, @s.Dropoff.City</div></td>
+                        <td>@s.ServiceLevel</td>
+                        <td><partial name="_StatusBadge" model="s.Status" /> @if (s.IsDelayed) { <span class="badge text-bg-danger">Delayed</span> }</td>
+                        <td>@Display.Local(s.EtaAt)</td>
+                        <td class="text-end">@Display.Money(s.Price, s.Currency)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

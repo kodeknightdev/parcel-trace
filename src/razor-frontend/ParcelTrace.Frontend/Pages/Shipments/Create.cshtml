@@ -1,0 +1,79 @@
+@page
+@model CreateModel
+@{
+    ViewData["Title"] = "Send a parcel";
+}
+@section Head {
+    <partial name="_LeafletHead" />
+}
+<h1 class="h3 mb-3">Send a parcel</h1>
+<form method="post" id="create-form">
+    <div asp-validation-summary="All" class="alert alert-danger" style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card card-body mb-3">
+                <h2 class="h6 text-uppercase text-muted">Sender &amp; pick-up</h2>
+                <div class="row g-2">
+                    <div class="col-md-6"><label class="form-label" asp-for="Input.SenderName">Name</label><input class="form-control" asp-for="Input.SenderName" /></div>
+                    <div class="col-md-6"><label class="form-label" asp-for="Input.SenderPhone">Phone</label><input class="form-control" asp-for="Input.SenderPhone" /></div>
+                    <div class="col-md-6"><label class="form-label" asp-for="Input.PickupLine1">Street</label><input class="form-control" asp-for="Input.PickupLine1" /></div>
+                    <div class="col-md-3"><label class="form-label" asp-for="Input.PickupPostalCode">Postal code</label><input class="form-control" asp-for="Input.PickupPostalCode" /></div>
+                    <div class="col-md-3"><label class="form-label" asp-for="Input.PickupCity">City</label><input class="form-control" asp-for="Input.PickupCity" /></div>
+                    <input type="hidden" asp-for="Input.PickupLat" /><input type="hidden" asp-for="Input.PickupLng" />
+                </div>
+            </div>
+            <div class="card card-body mb-3">
+                <h2 class="h6 text-uppercase text-muted">Recipient &amp; drop-off</h2>
+                <div class="row g-2">
+                    <div class="col-md-6"><label class="form-label" asp-for="Input.RecipientName">Name</label><input class="form-control" asp-for="Input.RecipientName" /></div>
+                    <div class="col-md-6"><label class="form-label" asp-for="Input.RecipientPhone">Phone</label><input class="form-control" asp-for="Input.RecipientPhone" /></div>
+                    <div class="col-md-6"><label class="form-label" asp-for="Input.DropoffLine1">Street</label><input class="form-control" asp-for="Input.DropoffLine1" /></div>
+                    <div class="col-md-3"><label class="form-label" asp-for="Input.DropoffPostalCode">Postal code</label><input class="form-control" asp-for="Input.DropoffPostalCode" /></div>
+                    <div class="col-md-3"><label class="form-label" asp-for="Input.DropoffCity">City</label><input class="form-control" asp-for="Input.DropoffCity" /></div>
+                    <input type="hidden" asp-for="Input.DropoffLat" /><input type="hidden" asp-for="Input.DropoffLng" />
+                </div>
+            </div>
+            <div class="card card-body">
+                <h2 class="h6 text-uppercase text-muted">Parcel</h2>
+                <div class="row g-2">
+                    <div class="col-6 col-md-3"><label class="form-label" asp-for="Input.WeightKg">Weight (kg)</label><input class="form-control" asp-for="Input.WeightKg" /></div>
+                    <div class="col-6 col-md-3"><label class="form-label" asp-for="Input.LengthCm">Length (cm)</label><input class="form-control" asp-for="Input.LengthCm" /></div>
+                    <div class="col-6 col-md-3"><label class="form-label" asp-for="Input.WidthCm">Width (cm)</label><input class="form-control" asp-for="Input.WidthCm" /></div>
+                    <div class="col-6 col-md-3"><label class="form-label" asp-for="Input.HeightCm">Height (cm)</label><input class="form-control" asp-for="Input.HeightCm" /></div>
+                    <div class="col-12">
+                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" asp-for="Input.ServiceLevel" value="Standard" id="std" /><label class="form-check-label" for="std">Standard &middot; within 48h</label></div>
+                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" asp-for="Input.ServiceLevel" value="Express" id="exp" /><label class="form-check-label" for="exp">Express &middot; within 8h</label></div>
+                    </div>
+                    <div class="col-12"><label class="form-label" asp-for="Input.Notes">Notes for the courier</label><input class="form-control" asp-for="Input.Notes" /></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-body mb-3">
+                <div class="btn-group btn-group-sm mb-2" role="group" aria-label="Which point to set">
+                    <input type="radio" class="btn-check" name="pick-mode" id="mode-pickup" value="pickup" checked />
+                    <label class="btn btn-outline-primary" for="mode-pickup">Set pick-up</label>
+                    <input type="radio" class="btn-check" name="pick-mode" id="mode-dropoff" value="dropoff" />
+                    <label class="btn btn-outline-success" for="mode-dropoff">Set drop-off</label>
+                </div>
+                <div id="picker" class="map-picker"></div>
+                <div class="form-text">Click the map to place the pick-up and drop-off points.</div>
+            </div>
+            @if (Model.Preview is { } q)
+            {
+                <div class="card card-body mb-3">
+                    <div class="text-muted small">@q.DistanceKm km · billable @q.BillableWeightKg kg · delivered within @q.SlaHours h</div>
+                    <div class="h3 mb-0">@Display.Money(q.Total, q.Currency)</div>
+                </div>
+            }
+            <div class="d-grid gap-2">
+                <button class="btn btn-outline-secondary" type="submit" asp-page-handler="Quote">Show price</button>
+                <button class="btn btn-primary btn-lg" type="submit">Book shipment</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/js/create.js" asp-append-version="true"></script>
+}

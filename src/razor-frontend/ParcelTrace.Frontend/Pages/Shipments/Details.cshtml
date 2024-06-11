@@ -1,0 +1,89 @@
+@page "{id:guid}"
+@model DetailsModel
+@{
+    var s = Model.Shipment!;
+    ViewData["Title"] = s.TrackingNumber;
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <div class="text-muted small">Tracking number</div>
+        <h1 class="h3 tracking-number mb-1">@s.TrackingNumber</h1>
+        <partial name="_StatusBadge" model="s.Status" /> @if (s.IsDelayed) { <span class="badge text-bg-danger">Delayed</span> }
+    </div>
+    <div class="text-end">
+        <a class="btn btn-outline-primary btn-sm" asp-page="/Track" asp-route-tn="@s.TrackingNumber"><i class="bi bi-geo-alt"></i> Live tracking page</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card card-body mb-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2 class="h6 text-uppercase text-muted">From</h2>
+                    <p class="mb-0">@s.Sender.Name<br />@s.Pickup.Line1<br />@s.Pickup.PostalCode @s.Pickup.City</p>
+                </div>
+                <div class="col-md-6">
+                    <h2 class="h6 text-uppercase text-muted">To</h2>
+                    <p class="mb-0">@s.Recipient.Name<br />@s.Dropoff.Line1<br />@s.Dropoff.PostalCode @s.Dropoff.City</p>
+                </div>
+            </div>
+            <hr />
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Service</dt><dd class="col-sm-8">@s.ServiceLevel · @s.DistanceKm km · @s.Package.WeightKg kg (@s.Package.LengthCm×@s.Package.WidthCm×@s.Package.HeightCm cm)</dd>
+                <dt class="col-sm-4">Price</dt><dd class="col-sm-8">@Display.Money(s.Price, s.Currency)</dd>
+                <dt class="col-sm-4">Booked</dt><dd class="col-sm-8">@Display.Local(s.CreatedAt)</dd>
+                <dt class="col-sm-4">Delivery promise</dt><dd class="col-sm-8">@Display.Local(s.SlaDueAt)</dd>
+                <dt class="col-sm-4">Estimated arrival</dt><dd class="col-sm-8">@Display.Local(s.EtaAt)</dd>
+                @if (s.CourierName is not null)
+                {
+                    <dt class="col-sm-4">Courier</dt><dd class="col-sm-8">@s.CourierName</dd>
+                }
+                @if (s.Notes is not null)
+                {
+                    <dt class="col-sm-4">Notes</dt><dd class="col-sm-8">@s.Notes</dd>
+                }
+                @if (s.Proof is { } pod)
+                {
+                    <dt class="col-sm-4">Proof of delivery</dt>
+                    <dd class="col-sm-8">Received by @pod.RecipientName, signed "@pod.SignatureName", @Display.Local(pod.DeliveredAt)
+                        @if (pod.PhotoUrl is not null) { <a href="@pod.PhotoUrl" target="_blank" rel="noopener">photo</a> }
+                    </dd>
+                }
+                @if (s.FailureReason is not null)
+                {
+                    <dt class="col-sm-4">Failed</dt><dd class="col-sm-8">@s.FailureReason</dd>
+                }
+                @if (s.CancelReason is not null)
+                {
+                    <dt class="col-sm-4">Cancelled</dt><dd class="col-sm-8">@s.CancelReason (@Display.Local(s.CancelledAt))</dd>
+                }
+            </dl>
+        </div>
+
+        @if (s.CanCancel)
+        {
+            <form method="post" asp-page-handler="Cancel" asp-route-id="@s.Id" class="card card-body border-warning">
+                <h2 class="h6">Cancel this shipment</h2>
+                <p class="small text-muted mb-2">Possible until @Display.Local(s.CancelDeadline), as long as the courier hasn't picked it up.</p>
+                <div class="input-group">
+                    <input name="reason" class="form-control" placeholder="Reason (optional)" maxlength="300" />
+                    <button class="btn btn-outline-danger" type="submit">Cancel shipment</button>
+                </div>
+            </form>
+        }
+    </div>
+    <div class="col-lg-5">
+        <div class="card card-body">
+            <h2 class="h6 text-uppercase text-muted">History</h2>
+            @if (Model.Timeline.Count > 0)
+            {
+                <partial name="_Timeline" model="Model.Timeline" />
+            }
+            else
+            {
+                <p class="text-muted small mb-0">Updates appear here within a few seconds.</p>
+            }
+        </div>
+    </div>
+</div>
