@@ -1,0 +1,131 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dispatcher dashboard";
+    var c = Model.Counts;
+    var b = Model.Board?.Today;
+    var sum = Model.Summary;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Dispatch</h1>
+    <form method="post" asp-page-handler="AutoAssignAll">
+        <button class="btn btn-primary" type="submit" @(Model.Queue.Count == 0 ? "disabled" : "")><i class="bi bi-magic"></i> Offer waiting shipments</button>
+    </form>
+</div>
+
+@foreach (var error in Model.Errors)
+{
+    <div class="alert alert-warning">@error</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2"><div class="card card-body stat"><div class="value">@(b?.Created ?? c?.Created ?? 0)</div><div class="label">Booked today</div></div></div>
+    <div class="col-6 col-lg-2"><div class="card card-body stat"><div class="value">@(b?.Delivered ?? c?.Delivered ?? 0)</div><div class="label">Delivered today</div></div></div>
+    <div class="col-6 col-lg-2"><div class="card card-body stat"><div class="value">@Model.OnTheRoad</div><div class="label">With a courier</div></div></div>
+    <div class="col-6 col-lg-2"><div class="card card-body stat"><div class="value">@(sum?.Pending ?? c?.Unassigned ?? 0)</div><div class="label">Waiting @if (sum is { Escalated: > 0 }) { <span class="badge text-bg-danger">@sum.Escalated escalated</span> }</div></div></div>
+    <div class="col-6 col-lg-2"><div class="card card-body stat"><div class="value text-danger">@(c?.Delayed ?? 0)</div><div class="label">Delayed</div></div></div>
+    <div class="col-6 col-lg-2"><div class="card card-body stat"><div class="value">@(b?.Failed ?? c?.Failed ?? 0) / @(b?.Cancelled ?? c?.Cancelled ?? 0)</div><div class="label">Failed / cancelled</div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="card mb-4">
+            <div class="card-header bg-white"><strong>Waiting for a courier</strong> <span class="badge text-bg-secondary">@Model.Queue.Count</span>
+                <span class="small text-muted ms-2">offers go to the nearest courier, who has 2 minutes to accept; after 3 misses the shipment is escalated here</span></div>
+            @if (Model.Queue.Count == 0)
+            {
+                <div class="card-body text-muted">Nothing waiting. New shipments are offered to couriers as they come in.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Shipment</th><th>Route</th><th>kg</th><th>Due</th><th style="min-width: 260px">Assign</th></tr></thead>
+                        <tbody>
+                        @foreach (var p in Model.Queue)
+                        {
+                            <tr>
+                                <td><span class="tracking-number">@p.TrackingNumber</span> @if (p.ServiceLevel == ServiceLevel.Express) { <span class="badge text-bg-warning">Express</span> }
+                                    @if (p.Escalated) { <span class="badge text-bg-danger">Escalated</span> }
+                                    @if (p.OfferedTo is not null) { <div class="small text-muted">offered to @p.OfferedTo until @Display.Local(p.OfferExpiresAt)</div> }
+                                    else if (p.LastError is not null) { <div class="small text-muted">@p.LastError (@p.Attempts tries)</div> }</td>
+                                <td class="small">@p.PickupPostalCode @p.PickupCity &rarr; @p.DropoffCity</td>
+                                <td>@p.WeightKg</td>
+                                <td class="small">@Display.Local(p.SlaDueAt)</td>
+                                <td>
+                                    <form method="post" asp-page-handler="Assign" class="d-flex gap-1">
+                                        <input type="hidden" name="shipmentId" value="@p.ShipmentId" />
+                                        <select name="courierId" class="form-select form-select-sm" aria-label="Courier">
+                                            @foreach (var courier in Model.Couriers.Where(x => x.IsAvailable))
+                                            {
+                                                <option value="@courier.Id">@courier.Name (@courier.VehicleType, @courier.ActiveCount/@courier.MaxActiveShipments)</option>
+                                            }
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-primary" type="submit">Assign</button>
+                                        @if (!p.Escalated && p.OfferedTo is null)
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" type="submit" asp-page-handler="AutoAssign" title="Offer to the nearest available courier"><i class="bi bi-magic"></i></button>
+                                        }
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white"><strong>Delayed</strong> <span class="text-muted small">past the delivery promise, or ETA beyond it</span></div>
+            @if (Model.Delayed.Count == 0)
+            {
+                <div class="card-body text-muted">Everything is on time.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Shipment</th><th>Status</th><th>Courier</th><th>Promise</th><th>ETA</th></tr></thead>
+                        <tbody>
+                        @foreach (var s in Model.Delayed)
+                        {
+                            <tr>
+                                <td class="tracking-number">@s.TrackingNumber</td>
+                                <td><partial name="_StatusBadge" model="s.Status" /></td>
+                                <td>@(s.CourierName ?? "–")</td>
+                                <td class="small">@Display.Local(s.SlaDueAt)</td>
+                                <td class="small text-danger">@Display.Local(s.EtaAt)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between">
+                <strong>Couriers</strong>
+                @if (sum is not null)
+                {
+                    <span class="small text-muted">@sum.Idle idle · @sum.Busy busy · @sum.Full full · @sum.OffDuty off duty</span>
+                }
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var courier in Model.Couriers)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <a asp-page="Route" asp-route-courierId="@courier.Id">@courier.Name</a>
+                            <div class="small text-muted">@courier.VehicleType · @courier.ActiveCount/@courier.MaxActiveShipments parcels · @courier.CurrentLoadKg/@courier.CapacityKg kg</div>
+                        </div>
+                        <span class="badge @Display.AvailabilityClass(courier.Availability)">@courier.Availability</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
