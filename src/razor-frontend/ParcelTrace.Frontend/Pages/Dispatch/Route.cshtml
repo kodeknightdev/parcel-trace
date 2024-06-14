@@ -1,0 +1,48 @@
+@page
+@model RouteModel
+@{
+    ViewData["Title"] = "Routes";
+}
+<h1 class="h3 mb-3">Courier routes</h1>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <select name="courierId" class="form-select" aria-label="Courier">
+            @foreach (var c in Model.Couriers)
+            {
+                <option value="@c.Id" selected="@(c.Id == Model.CourierId)">@c.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3"><input type="date" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" class="form-control" aria-label="Date" /></div>
+    <div class="col-md-2 d-grid"><button class="btn btn-outline-primary" type="submit">Show</button></div>
+</form>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-warning">@Model.Error</div>
+}
+@if (Model.Route is { } r)
+{
+    <p class="text-muted">@r.CourierName · @r.Date · @r.Open open, @r.Done done</p>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>#</th><th>Shipment</th><th>Pick-up</th><th>Drop-off</th><th>Status</th><th>Assigned</th></tr></thead>
+                <tbody>
+                @for (var i = 0; i < r.Stops.Count; i++)
+                {
+                    var s = r.Stops[i];
+                    <tr class="@(s.Status != "Active" ? "text-muted" : "")">
+                        <td>@(i + 1)</td>
+                        <td class="tracking-number">@s.TrackingNumber @if (s.ServiceLevel == ServiceLevel.Express) { <span class="badge text-bg-warning">Express</span> }</td>
+                        <td class="small">@s.Pickup.Line1, @s.Pickup.PostalCode</td>
+                        <td class="small">@s.RecipientName<br />@s.Dropoff.Line1, @s.Dropoff.PostalCode</td>
+                        <td><partial name="_StatusBadge" model="s.ShipmentStatus" /></td>
+                        <td class="small">@s.Mode · @Display.Local(s.AssignedAt)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

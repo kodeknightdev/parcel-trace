@@ -1,0 +1,56 @@
+@page
+@model CouriersModel
+@{
+    ViewData["Title"] = "Couriers";
+}
+<h1 class="h3 mb-3">Courier registry</h1>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Name</th><th>Vehicle</th><th>Capacity</th><th>Load</th><th>Last seen</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var c in Model.Couriers)
+                    {
+                        <tr>
+                            <td><a asp-page="Route" asp-route-courierId="@c.Id">@c.Name</a><div class="small text-muted">@c.Phone</div></td>
+                            <td>@c.VehicleType</td>
+                            <td>@c.CapacityKg kg / @c.MaxActiveShipments</td>
+                            <td>@c.ActiveCount · @c.CurrentLoadKg kg</td>
+                            <td class="small">@Display.Local(c.LastSeenAt)</td>
+                            <td><span class="badge @Display.AvailabilityClass(c.Availability)">@c.Availability</span></td>
+                            <td>
+                                <form method="post" asp-page-handler="Availability">
+                                    <input type="hidden" name="courierId" value="@c.Id" />
+                                    <input type="hidden" name="available" value="@((!c.IsAvailable).ToString().ToLowerInvariant())" />
+                                    <button class="btn btn-sm @(c.IsAvailable ? "btn-outline-secondary" : "btn-outline-success")" type="submit">@(c.IsAvailable ? "Set off duty" : "Set on duty")</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <form method="post" class="card card-body">
+            <h2 class="h6 text-uppercase text-muted">Register a courier</h2>
+            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+            <div class="mb-2"><label class="form-label" asp-for="Input.Name"></label><input class="form-control" asp-for="Input.Name" /></div>
+            <div class="mb-2"><label class="form-label" asp-for="Input.Phone"></label><input class="form-control" asp-for="Input.Phone" /></div>
+            <div class="mb-2"><label class="form-label" asp-for="Input.VehicleType">Vehicle</label><select class="form-select" asp-for="Input.VehicleType" asp-items="Html.GetEnumSelectList<VehicleType>()"></select></div>
+            <div class="row g-2 mb-2">
+                <div class="col"><label class="form-label" asp-for="Input.CapacityKg">Capacity (kg)</label><input class="form-control" asp-for="Input.CapacityKg" /></div>
+                <div class="col"><label class="form-label" asp-for="Input.MaxActiveShipments">Max parcels</label><input class="form-control" asp-for="Input.MaxActiveShipments" /></div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col"><label class="form-label" asp-for="Input.HomeLat">Base lat</label><input class="form-control" asp-for="Input.HomeLat" /></div>
+                <div class="col"><label class="form-label" asp-for="Input.HomeLng">Base lng</label><input class="form-control" asp-for="Input.HomeLng" /></div>
+            </div>
+            <button class="btn btn-primary" type="submit">Add courier</button>
+            <p class="form-text mb-0">New couriers start off duty. Create their login under Users (admin).</p>
+        </form>
+    </div>
+</div>
