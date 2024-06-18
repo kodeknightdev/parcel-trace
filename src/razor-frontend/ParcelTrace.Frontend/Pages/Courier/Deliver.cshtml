@@ -1,0 +1,46 @@
+@page "{shipmentId:guid}"
+@model DeliverModel
+@{
+    ViewData["Title"] = Model.Failed ? "Report failed delivery" : "Proof of delivery";
+}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h1 class="h4 mb-1">@ViewData["Title"]</h1>
+        <p class="tracking-number text-muted">@Model.Tn</p>
+        <form method="post" class="card card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Tn" />
+            <input type="hidden" asp-for="Failed" />
+            @if (Model.Failed)
+            {
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Input.Reason">What went wrong?</label>
+                    <select class="form-select" asp-for="Input.Reason">
+                        <option>Recipient not at home</option>
+                        <option>Address not found</option>
+                        <option>Recipient refused the parcel</option>
+                        <option>Parcel damaged</option>
+                    </select>
+                </div>
+                <button class="btn btn-danger" type="submit">Report failed delivery</button>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Input.RecipientName">Received by</label>
+                    <input class="form-control" asp-for="Input.RecipientName" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Input.SignatureName">Signature (typed name)</label>
+                    <input class="form-control fst-italic" asp-for="Input.SignatureName" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Input.PhotoUrl">Photo URL (optional)</label>
+                    <input class="form-control" asp-for="Input.PhotoUrl" placeholder="https://…" />
+                </div>
+                <button class="btn btn-success" type="submit">Confirm delivery</button>
+            }
+            <a class="btn btn-link" asp-page="Index">Back to route</a>
+        </form>
+    </div>
+</div>

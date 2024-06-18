@@ -1,0 +1,106 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "My route";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-0">Today's route</h1>
+        @if (Model.Courier is { } me)
+        {
+            <div class="text-muted">@me.Name · @me.VehicleType · @me.ActiveCount/@me.MaxActiveShipments parcels · @me.CurrentLoadKg/@me.CapacityKg kg</div>
+        }
+    </div>
+    @if (Model.Courier is { } c)
+    {
+        <form method="post" asp-page-handler="Availability">
+            <input type="hidden" name="available" value="@((!c.IsAvailable).ToString().ToLowerInvariant())" />
+            <button class="btn @(c.IsAvailable ? "btn-outline-secondary" : "btn-success")" type="submit">
+                @(c.IsAvailable ? "Go off duty" : "Go on duty")
+            </button>
+        </form>
+    }
+</div>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-warning">@Model.Error</div>
+}
+
+@if (Model.Offers.Count > 0)
+{
+    <div class="card border-primary mb-4">
+        <div class="card-header bg-primary text-white"><strong>New offers</strong> <span class="small">accept before they expire, or they go to the next courier</span></div>
+        <ul class="list-group list-group-flush">
+            @foreach (var o in Model.Offers)
+            {
+                <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <span class="tracking-number fw-semibold">@o.TrackingNumber</span>
+                        @if (o.ServiceLevel == ServiceLevel.Express) { <span class="badge text-bg-warning">Express</span> }
+                        <div class="small text-muted">@o.PickupPostalCode @o.PickupCity &rarr; @o.DropoffCity · @o.WeightKg kg · @o.DistanceKm km to pick-up · expires @Display.Local(o.ExpiresAt)</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <form method="post" asp-page-handler="Accept"><input type="hidden" name="shipmentId" value="@o.ShipmentId" /><button class="btn btn-sm btn-success" type="submit">Accept</button></form>
+                        <form method="post" asp-page-handler="Reject"><input type="hidden" name="shipmentId" value="@o.ShipmentId" /><input type="hidden" name="reason" value="Declined by courier" /><button class="btn btn-sm btn-outline-secondary" type="submit">Decline</button></form>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@if (Model.Route is { } r)
+{
+    @if (r.Stops.Count == 0)
+    {
+        <div class="card card-body text-muted">No stops yet. Parcels appear here once you accept an offer or a dispatcher assigns them to you.</div>
+    }
+    <div class="row g-3">
+        @foreach (var s in r.Stops)
+        {
+            var next = Display.CourierNextSteps(s.ShipmentStatus);
+            <div class="col-md-6 col-xl-4">
+                <div class="card h-100 @(s.Status != "Active" ? "opacity-50" : "")">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <span class="tracking-number fw-semibold">@s.TrackingNumber</span>
+                            <partial name="_StatusBadge" model="s.ShipmentStatus" />
+                        </div>
+                        @if (s.ServiceLevel == ServiceLevel.Express)
+                        {
+                            <span class="badge text-bg-warning">Express · due @Display.Local(s.SlaDueAt)</span>
+                        }
+                        <div class="small mt-2"><i class="bi bi-box-arrow-up"></i> @s.Pickup.Line1, @s.Pickup.PostalCode</div>
+                        <div class="small"><i class="bi bi-house-door"></i> @s.RecipientName, @s.Dropoff.Line1, @s.Dropoff.PostalCode</div>
+                        <div class="small text-muted">@s.WeightKg kg</div>
+                    </div>
+                    @if (s.Status == "Active" && next.Count > 0)
+                    {
+                        <div class="card-footer bg-white d-flex flex-wrap gap-2">
+                            @foreach (var step in next)
+                            {
+                                if (step == ShipmentStatus.Delivered)
+                                {
+                                    <a class="btn btn-sm btn-success" asp-page="Deliver" asp-route-shipmentId="@s.ShipmentId" asp-route-tn="@s.TrackingNumber">Deliver…</a>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-page-handler="Status">
+                                        <input type="hidden" name="shipmentId" value="@s.ShipmentId" />
+                                        <input type="hidden" name="status" value="@step" />
+                                        <button class="btn btn-sm btn-primary" type="submit">@Display.StatusLabel(step)</button>
+                                    </form>
+                                }
+                            }
+                            @if (s.ShipmentStatus != ShipmentStatus.Assigned)
+                            {
+                                <a class="btn btn-sm btn-outline-danger ms-auto" asp-page="Deliver" asp-route-shipmentId="@s.ShipmentId" asp-route-tn="@s.TrackingNumber" asp-route-failed="true">Failed…</a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
