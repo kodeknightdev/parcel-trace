@@ -1,0 +1,58 @@
+@page
+@model UsersModel
+@{
+    ViewData["Title"] = "Users";
+}
+<h1 class="h3 mb-3">Users</h1>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Courier id</th><th>Since</th></tr></thead>
+                    <tbody>
+                    @foreach (var u in Model.Users)
+                    {
+                        <tr class="@(u.IsActive ? "" : "text-muted")">
+                            <td>@u.DisplayName</td>
+                            <td>@u.Email</td>
+                            <td><span class="badge text-bg-secondary">@u.Role</span></td>
+                            <td class="small font-monospace">@u.CourierId</td>
+                            <td class="small">@Display.Local(u.CreatedAt)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <form method="post" class="card card-body">
+            <h2 class="h6 text-uppercase text-muted">New account</h2>
+            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+            <div class="mb-2"><label class="form-label" asp-for="Input.DisplayName">Name</label><input class="form-control" asp-for="Input.DisplayName" /></div>
+            <div class="mb-2"><label class="form-label" asp-for="Input.Email"></label><input class="form-control" asp-for="Input.Email" /></div>
+            <div class="mb-2"><label class="form-label" asp-for="Input.Password"></label><input class="form-control" asp-for="Input.Password" /></div>
+            <div class="mb-2">
+                <label class="form-label" asp-for="Input.Role"></label>
+                <select class="form-select" asp-for="Input.Role">
+                    @foreach (var role in Roles.All)
+                    {
+                        <option>@role</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.CourierId">Courier id (couriers only)</label>
+                <select class="form-select" asp-for="Input.CourierId">
+                    <option value="">–</option>
+                    @foreach (var c in Model.Couriers)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <button class="btn btn-primary" type="submit">Create</button>
+        </form>
+    </div>
+</div>
