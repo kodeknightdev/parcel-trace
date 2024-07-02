@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using ParcelTrace.BuildingBlocks.Health;
 using ParcelTrace.BuildingBlocks.Logging;
+using ParcelTrace.BuildingBlocks.Telemetry;
 using ParcelTrace.Contracts;
 using ParcelTrace.Frontend.Services;
 using Serilog;
@@ -8,6 +9,7 @@ using Serilog;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddParcelLogging("frontend");
+builder.AddParcelTelemetry("frontend");
 builder.Services.AddHealthChecks();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

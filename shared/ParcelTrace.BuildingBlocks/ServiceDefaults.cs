@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using ParcelTrace.BuildingBlocks.Errors;
 using ParcelTrace.BuildingBlocks.Logging;
+using ParcelTrace.BuildingBlocks.Telemetry;
 using Serilog;
 using Serilog.Events;
 
@@ -13,6 +14,7 @@ public static class ServiceDefaults
     public static WebApplicationBuilder AddServiceDefaults(this WebApplicationBuilder builder, string serviceName, Type? validatorsAssemblyMarker = null)
     {
         builder.AddParcelLogging(serviceName);
+        builder.AddParcelTelemetry(serviceName);
         // enums as strings on the wire
         builder.Services.AddParcelProblemDetails();
         builder.Services.AddParcelSwagger($"parcel-trace {serviceName}");
