@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\services\shipments\ParcelTrace.Shipments\ParcelTrace.Shipments.csproj" />
+    <ProjectReference Include="..\ParcelTrace.TestSupport\ParcelTrace.TestSupport.csproj" />
+  </ItemGroup>
+
+</Project>

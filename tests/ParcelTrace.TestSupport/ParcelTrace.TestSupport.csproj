@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\ParcelTrace.BuildingBlocks\ParcelTrace.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+</Project>
