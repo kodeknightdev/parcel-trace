@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,8 @@ public static class ServiceDefaults
         builder.AddParcelLogging(serviceName);
         builder.AddParcelTelemetry(serviceName);
         // enums as strings on the wire
+        builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddParcelProblemDetails();
         builder.Services.AddParcelSwagger($"parcel-trace {serviceName}");
         builder.Services.AddHealthChecks();
