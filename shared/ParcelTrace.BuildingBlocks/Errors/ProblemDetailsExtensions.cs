@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -20,12 +21,45 @@ public static class ProblemDetailsExtensions
                 ctx.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? ctx.HttpContext.TraceIdentifier;
             };
         });
-        services.AddExceptionHandler<AppExceptionHandler>();
+        services.AddExceptionHandler<UnexpectedExceptionHandler>();
         return services;
+    }
+
+    public static IApplicationBuilder UseAppExceptions(this IApplicationBuilder app) => app.UseMiddleware<AppExceptionMiddleware>();
+
+    internal static Task WriteAsync(HttpContext context, ProblemDetails problem)
+    {
+        problem.Instance = context.Request.Path;
+        problem.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
+        return Results.Problem(problem).ExecuteAsync(context);
     }
 }
 
-internal sealed class AppExceptionHandler(ILogger<AppExceptionHandler> logger, IHostEnvironment env) : IExceptionHandler
+internal sealed class AppExceptionMiddleware(RequestDelegate next, ILogger<AppExceptionMiddleware> logger)
+{
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await next(context);
+        }
+        catch (Exception exception) when (!context.Response.HasStarted && exception is AppException or BadHttpRequestException or UnauthorizedAccessException)
+        {
+            var problem = exception switch
+            {
+                AppException app => new ProblemDetails { Status = app.StatusCode, Title = app.Title, Detail = app.Message },
+                BadHttpRequestException bad => new ProblemDetails { Status = bad.StatusCode, Title = "Bad request", Detail = bad.Message },
+                _ => new ProblemDetails { Status = StatusCodes.Status401Unauthorized, Title = "Unauthorized" }
+            };
+
+            logger.LogInformation("{Method} {Path} -> {Status}: {Detail}", context.Request.Method, context.Request.Path, problem.Status, problem.Detail);
+            context.Response.Clear();
+            await ProblemDetailsExtensions.WriteAsync(context, problem);
+        }
+    }
+}
+
+internal sealed class UnexpectedExceptionHandler(ILogger<UnexpectedExceptionHandler> logger, IHostEnvironment env) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
     {
@@ -34,31 +68,13 @@ internal sealed class AppExceptionHandler(ILogger<AppExceptionHandler> logger, I
             return true;
         }
 
-        var problem = exception switch
+        logger.LogError(exception, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
+        await ProblemDetailsExtensions.WriteAsync(context, new ProblemDetails
         {
-            AppException app => new ProblemDetails { Status = app.StatusCode, Title = app.Title, Detail = app.Message },
-            BadHttpRequestException bad => new ProblemDetails { Status = bad.StatusCode, Title = "Bad request", Detail = bad.Message },
-            UnauthorizedAccessException => new ProblemDetails { Status = StatusCodes.Status401Unauthorized, Title = "Unauthorized" },
-            _ => new ProblemDetails
-            {
-                Status = StatusCodes.Status500InternalServerError,
-                Title = "An unexpected error occurred",
-                Detail = env.IsDevelopment() ? exception.Message : null
-            }
-        };
-
-        if (problem.Status >= 500)
-        {
-            logger.LogError(exception, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
-        }
-        else
-        {
-            logger.LogInformation("{Method} {Path} -> {Status}: {Detail}", context.Request.Method, context.Request.Path, problem.Status, problem.Detail);
-        }
-
-        problem.Instance = context.Request.Path;
-        problem.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
-        await Results.Problem(problem).ExecuteAsync(context);
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An unexpected error occurred",
+            Detail = env.IsDevelopment() ? exception.Message : null
+        });
         return true;
     }
 }

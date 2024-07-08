@@ -38,6 +38,7 @@ public static class ServiceDefaults
             ex is not null || ctx.Response.StatusCode >= 500 ? LogEventLevel.Error
             : ctx.Request.Path.StartsWithSegments("/health") ? LogEventLevel.Verbose
             : LogEventLevel.Information);
+        app.UseAppExceptions();
         app.UseSwagger();
         app.UseSwaggerUI();
         return app;
