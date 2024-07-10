@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Testcontainers.MongoDb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\services\dispatch\ParcelTrace.Dispatch\ParcelTrace.Dispatch.csproj" />
+    <ProjectReference Include="..\ParcelTrace.TestSupport\ParcelTrace.TestSupport.csproj" />
+  </ItemGroup>
+
+</Project>
