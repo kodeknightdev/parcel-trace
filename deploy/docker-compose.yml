@@ -1,0 +1,241 @@
+# cp .env.example .env && docker compose up --build  (from the repo root)
+name: parcel-trace
+
+x-dotnet-env: &dotnet-env
+  ASPNETCORE_ENVIRONMENT: Development
+  Logging__Format: json
+  Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-only-signing-key-change-me-0123456789abcdef}
+  Kafka__BootstrapServers: kafka:9092
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+
+x-dotnet-healthcheck: &dotnet-healthcheck
+  # no curl in the aspnet image
+  test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q ' 200 ' <&3"]
+  interval: 10s
+  timeout: 3s
+  retries: 12
+  start_period: 20s
+
+x-after-infra: &after-infra
+  postgres:
+    condition: service_healthy
+  kafka-init:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:16.3-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-parcel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-parcel}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d tracking"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mongo:
+    image: mongo:7.0.8
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.2.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.7.0
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: pT1rAcEkRaFtCluSt3r0001
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 15s
+
+  kafka-init:
+    image: apache/kafka:3.7.0
+    entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    volumes:
+      - ./kafka/create-topics.sh:/scripts/create-topics.sh:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    environment:
+      KAFKA_CLUSTERS_0_NAME: parcel-trace
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "false"
+    ports:
+      - "8085:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+
+  identity:
+    build:
+      context: ..
+      dockerfile: src/services/identity/Dockerfile
+    environment:
+      <<: *dotnet-env
+      OTEL_SERVICE_NAME: identity
+      SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-Demo@12345}
+      ConnectionStrings__Identity: Host=postgres;Database=identity;Username=${POSTGRES_USER:-parcel};Password=${POSTGRES_PASSWORD:-parcel}
+    healthcheck: *dotnet-healthcheck
+    depends_on: *after-infra
+
+  shipments:
+    build:
+      context: ..
+      dockerfile: src/services/shipments/Dockerfile
+    environment:
+      <<: *dotnet-env
+      OTEL_SERVICE_NAME: shipments
+      ConnectionStrings__Shipments: Host=postgres;Database=shipments;Username=${POSTGRES_USER:-parcel};Password=${POSTGRES_PASSWORD:-parcel}
+      Kestrel__Endpoints__Http__Url: http://+:8080
+      Kestrel__Endpoints__Grpc__Url: http://+:8081
+      Services__Eta: http://eta:8080
+    healthcheck: *dotnet-healthcheck
+    depends_on: *after-infra
+
+  dispatch:
+    build:
+      context: ..
+      dockerfile: src/services/dispatch/Dockerfile
+    environment:
+      <<: *dotnet-env
+      OTEL_SERVICE_NAME: dispatch
+      Mongo__ConnectionString: mongodb://mongo:27017
+      Services__ShipmentsGrpc: http://shipments:8081
+    healthcheck: *dotnet-healthcheck
+    depends_on:
+      mongo:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      shipments:
+        condition: service_started
+
+  tracking:
+    build:
+      context: ../src/services/tracking
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-parcel}:${POSTGRES_PASSWORD:-parcel}@postgres:5432/tracking
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:-dev-only-signing-key-change-me-0123456789abcdef}
+      ETA_URL: http://eta:8080
+      OTEL_SERVICE_NAME: tracking
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    depends_on:
+      <<: *after-infra
+      redis:
+        condition: service_healthy
+
+  eta:
+    build:
+      context: ../src/services/eta
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      OTEL_SERVICE_NAME: eta
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: src/gateway/Dockerfile
+    environment:
+      <<: *dotnet-env
+      OTEL_SERVICE_NAME: gateway
+      ReverseProxy__Clusters__identity__Destinations__d1__Address: http://identity:8080
+      ReverseProxy__Clusters__shipments__Destinations__d1__Address: http://shipments:8080
+      ReverseProxy__Clusters__dispatch__Destinations__d1__Address: http://dispatch:8080
+      ReverseProxy__Clusters__tracking__Destinations__d1__Address: http://tracking:8080
+      ReverseProxy__Clusters__eta__Destinations__d1__Address: http://eta:8080
+    ports:
+      - "8080:8080"
+    healthcheck: *dotnet-healthcheck
+    depends_on:
+      - identity
+      - shipments
+      - dispatch
+      - tracking
+      - eta
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: src/razor-frontend/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__Format: json
+      OTEL_SERVICE_NAME: frontend
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      Gateway__BaseUrl: http://gateway:8080
+    ports:
+      - "8000:8080"
+    healthcheck: *dotnet-healthcheck
+    depends_on:
+      - gateway
+
+volumes:
+  postgres-data:
+  mongo-data:
+  kafka-data:
