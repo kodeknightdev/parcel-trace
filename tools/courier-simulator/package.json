@@ -1,0 +1,14 @@
+{
+  "name": "parcel-trace-courier-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Drives demo couriers through their routes: streams location pings and reports pick-up, transit and delivery",
+  "main": "simulator.js",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "start": "node simulator.js",
+    "demo": "node simulator.js --speed 300 --interval 1 --once"
+  }
+}
