@@ -25,6 +25,8 @@ if (opts.help) {
 const INTERVAL_S = Number(opts.interval);
 const REJECT_RATE = Number(opts['reject-rate']);
 const SPEED_KMH = Number(opts.speed);
+// --speed only fast-forwards, pings report a normal speed
+const REPORTED_SPEED_KMH = Math.min(SPEED_KMH, 45);
 const ARRIVED_KM = 0.05;
 const OUT_FOR_DELIVERY_KM = 0.8;
 
@@ -122,7 +124,7 @@ class SimulatedCourier {
     const status = stop.shipmentStatus;
     const target = status === 'Assigned' ? stop.pickup : stop.dropoff;
     this.position = moveTowards(this.position, target, stepKm);
-    await this.ping(SPEED_KMH);
+    await this.ping(REPORTED_SPEED_KMH);
     const left = haversineKm(this.position, target);
 
     if (status === 'Assigned' && left <= ARRIVED_KM) {
