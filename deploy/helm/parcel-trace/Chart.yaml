@@ -1,0 +1,12 @@
+apiVersion: v2
+name: parcel-trace
+description: parcel-trace courier platform - identity, shipments, dispatch, tracking, eta, gateway and the Razor Pages frontend
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - logistics
+  - microservices
+  - kafka
+maintainers:
+  - name: Owen Shaw

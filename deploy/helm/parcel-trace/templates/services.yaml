@@ -1,0 +1,6 @@
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+{{ include "parcel-trace.service" (list $ $name $svc) }}
+{{- end }}
+{{- end }}

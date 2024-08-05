@@ -1,0 +1,18 @@
+parcel-trace {{ .Chart.AppVersion }} is deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Services:
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+  - {{ include "parcel-trace.fullname" (list $ $name) }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+Web app:  http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.hosts.web }}
+API:      http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.hosts.api }}/swagger
+{{- else }}
+
+kubectl port-forward svc/{{ include "parcel-trace.fullname" (list . "frontend") }} 8000:80
+kubectl port-forward svc/{{ include "parcel-trace.fullname" (list . "gateway") }} 8080:80
+{{- end }}

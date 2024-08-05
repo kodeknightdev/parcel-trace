@@ -1,0 +1,186 @@
+
+global:
+  # set by the pipeline
+  imageRegistry: ""
+  imageTag: ""
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  # rendered with tpl
+  env:
+    ASPNETCORE_ENVIRONMENT: Production
+    Kafka__BootstrapServers: "kafka.example.internal:9092"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4317"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+
+services:
+  identity:
+    enabled: true
+    image:
+      repository: parcel-trace/identity
+    replicas: 2
+    secretEnv:
+      Jwt__SigningKey: jwt-signing-key
+      ConnectionStrings__Identity: identity-db
+    autoscaling:
+      enabled: false
+
+  shipments:
+    enabled: true
+    image:
+      repository: parcel-trace/shipments
+    replicas: 2
+    extraPorts:
+      - name: grpc
+        port: 8081
+        appProtocol: grpc
+    env:
+      Kestrel__Endpoints__Http__Url: "http://+:8080"
+      Kestrel__Endpoints__Grpc__Url: "http://+:8081"
+      Services__Eta: "http://{{ .Release.Name }}-eta"
+    secretEnv:
+      Jwt__SigningKey: jwt-signing-key
+      ConnectionStrings__Shipments: shipments-db
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+
+  dispatch:
+    enabled: true
+    image:
+      repository: parcel-trace/dispatch
+    replicas: 2
+    env:
+      Services__ShipmentsGrpc: "http://{{ .Release.Name }}-shipments:8081"
+    secretEnv:
+      Jwt__SigningKey: jwt-signing-key
+      Mongo__ConnectionString: mongo-url
+    autoscaling:
+      enabled: false
+
+  tracking:
+    enabled: true
+    image:
+      repository: parcel-trace/tracking
+    replicas: 2
+    env:
+      PORT: "8080"
+      KAFKA_BROKERS: "{{ .Values.global.env.Kafka__BootstrapServers }}"
+      ETA_URL: "http://{{ .Release.Name }}-eta"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4318"
+    secretEnv:
+      JWT_SIGNING_KEY: jwt-signing-key
+      DATABASE_URL: tracking-db-url
+      REDIS_URL: redis-url
+    resources:
+      requests:
+        cpu: 50m
+        memory: 96Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 65
+
+  eta:
+    enabled: true
+    image:
+      repository: parcel-trace/eta
+    replicas: 2
+    env:
+      KAFKA_BROKERS: "{{ .Values.global.env.Kafka__BootstrapServers }}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4318"
+      TRAFFIC_TIMEZONE: Europe/Berlin
+    autoscaling:
+      enabled: false
+
+  gateway:
+    enabled: true
+    image:
+      repository: parcel-trace/gateway
+    replicas: 2
+    env:
+      ReverseProxy__Clusters__identity__Destinations__d1__Address: "http://{{ .Release.Name }}-identity"
+      ReverseProxy__Clusters__shipments__Destinations__d1__Address: "http://{{ .Release.Name }}-shipments"
+      ReverseProxy__Clusters__dispatch__Destinations__d1__Address: "http://{{ .Release.Name }}-dispatch"
+      ReverseProxy__Clusters__tracking__Destinations__d1__Address: "http://{{ .Release.Name }}-tracking"
+      ReverseProxy__Clusters__eta__Destinations__d1__Address: "http://{{ .Release.Name }}-eta"
+    secretEnv:
+      Jwt__SigningKey: jwt-signing-key
+    autoscaling:
+      enabled: false
+
+  frontend:
+    enabled: true
+    image:
+      repository: parcel-trace/frontend
+    replicas: 2
+    env:
+      Gateway__BaseUrl: "http://{{ .Release.Name }}-gateway"
+    autoscaling:
+      enabled: false
+
+# AKS workload identity for the pods (Azure only)
+workloadIdentity:
+  enabled: false
+  clientId: ""
+
+secrets:
+  # dev: create from secrets.values, prod: existingSecret
+  create: false
+  existingSecret: ""
+  values: {}
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 1m
+  hosts:
+    web: parcel-trace.example.com
+    api: api.parcel-trace.example.com
+  tls:
+    enabled: false
+    secretName: parcel-trace-tls
+
+kafkaTopics:
+  enabled: false
+  image: apache/kafka:3.7.0
+  partitions: 3
+  replicationFactor: 1
+  topics:
+    - shipments.created
+    - shipments.cancelled
+    - dispatch.courier-assigned
+    - tracking.location-updated
+    - tracking.status-changed
+    - eta.recalculated
+    - parcel-trace.healthchecks
+    - shipments.retry
+    - shipments.dlq
+    - dispatch.retry
+    - dispatch.dlq
+    - tracking.retry
+    - tracking.dlq
+    - eta.retry
+    - eta.dlq
+
+# bitnami charts, dev only
+postgresql:
+  enabled: false
+mongodb:
+  enabled: false
+redis:
+  enabled: false
+kafka:
+  enabled: false
