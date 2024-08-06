@@ -1,0 +1,34 @@
+{{- if .Values.kafkaTopics.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-kafka-topics
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: {{ include "parcel-trace.name" . }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: create-topics
+          image: {{ .Values.kafkaTopics.image }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              for topic in {{ join " " .Values.kafkaTopics.topics }}; do
+                /opt/kafka/bin/kafka-topics.sh --bootstrap-server "$BOOTSTRAP" --create --if-not-exists \
+                  --topic "$topic" --partitions {{ .Values.kafkaTopics.partitions }} --replication-factor {{ .Values.kafkaTopics.replicationFactor }}
+              done
+          env:
+            - name: BOOTSTRAP
+              value: {{ tpl .Values.global.env.Kafka__BootstrapServers . | quote }}
+{{- end }}
