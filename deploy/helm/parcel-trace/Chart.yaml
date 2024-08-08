@@ -10,3 +10,21 @@ keywords:
   - kafka
 maintainers:
   - name: Owen Shaw
+# dev only, prod uses managed services
+dependencies:
+  - name: postgresql
+    version: 15.5.0
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled
+  - name: mongodb
+    version: 15.6.0
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: mongodb.enabled
+  - name: redis
+    version: 19.5.0
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: redis.enabled
+  - name: kafka
+    version: 29.3.0
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: kafka.enabled

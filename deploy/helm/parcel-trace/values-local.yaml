@@ -1,0 +1,109 @@
+# Any Kubernetes cluster (kind, Docker Desktop, minikube), no Azure:
+# in-cluster datastores, a plain Kubernetes Secret, no workload identity.
+#
+#   build the images with the tag "local" (see docs/deployment.md), then
+#   helm dependency build deploy/helm/parcel-trace
+#   helm upgrade --install pt deploy/helm/parcel-trace -f deploy/helm/parcel-trace/values-local.yaml -n parcel-trace --create-namespace
+global:
+  imageRegistry: ""
+  imageTag: local
+  imagePullPolicy: IfNotPresent
+  env:
+    ASPNETCORE_ENVIRONMENT: Development
+    Kafka__BootstrapServers: "{{ .Release.Name }}-kafka:9092"
+    # no collector in a local cluster
+    Otel__Enabled: "false"
+    OTEL_SDK_DISABLED: "true"
+  resources:
+    requests:
+      cpu: 25m
+      memory: 96Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+
+services:
+  identity:
+    replicas: 1
+    env:
+      Database__MigrateOnStartup: "true"
+    secretEnv:
+      SEED_DEMO_PASSWORD: seed-demo-password
+  shipments:
+    replicas: 1
+    env:
+      Database__MigrateOnStartup: "true"
+  dispatch:
+    replicas: 1
+  tracking:
+    replicas: 1
+  eta:
+    replicas: 1
+  gateway:
+    replicas: 1
+  frontend:
+    replicas: 1
+
+workloadIdentity:
+  enabled: false
+
+secrets:
+  create: true
+  existingSecret: ""
+  # local placeholders
+  values:
+    jwt-signing-key: "dev-only-signing-key-change-me-0123456789abcdef"
+    identity-db: "Host={{ .Release.Name }}-postgresql;Database=identity;Username=parcel;Password=parcel"
+    shipments-db: "Host={{ .Release.Name }}-postgresql;Database=shipments;Username=parcel;Password=parcel"
+    tracking-db-url: "postgres://parcel:parcel@{{ .Release.Name }}-postgresql:5432/tracking"
+    mongo-url: "mongodb://{{ .Release.Name }}-mongodb:27017"
+    redis-url: "redis://{{ .Release.Name }}-redis-master:6379"
+    seed-demo-password: "Demo@12345"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    web: parcel-trace.localhost
+    api: api.parcel-trace.localhost
+  tls:
+    enabled: false
+
+kafkaTopics:
+  enabled: true
+
+postgresql:
+  enabled: true
+  auth:
+    username: parcel
+    password: parcel
+    database: identity
+  primary:
+    initdb:
+      scripts:
+        databases.sql: |
+          CREATE DATABASE shipments OWNER parcel;
+          CREATE DATABASE tracking OWNER parcel;
+
+mongodb:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+kafka:
+  enabled: true
+  controller:
+    replicaCount: 1
+  listeners:
+    client:
+      protocol: PLAINTEXT
+  provisioning:
+    enabled: false

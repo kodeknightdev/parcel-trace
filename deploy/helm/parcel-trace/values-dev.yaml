@@ -1,0 +1,92 @@
+global:
+  env:
+    ASPNETCORE_ENVIRONMENT: Development
+    Kafka__BootstrapServers: "{{ .Release.Name }}-kafka:9092"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger-collector.observability:4317"
+
+services:
+  identity:
+    replicas: 1
+    env:
+      Database__MigrateOnStartup: "true"
+    secretEnv:
+      SEED_DEMO_PASSWORD: seed-demo-password
+  shipments:
+    replicas: 1
+    env:
+      Database__MigrateOnStartup: "true"
+  dispatch:
+    replicas: 1
+  tracking:
+    replicas: 1
+    env:
+      LOG_LEVEL: debug
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger-collector.observability:4318"
+  eta:
+    replicas: 1
+    env:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger-collector.observability:4318"
+  gateway:
+    replicas: 1
+  frontend:
+    replicas: 1
+
+workloadIdentity:
+  enabled: true
+  # placeholder, the user-assigned identity of the dev cluster
+  clientId: "00000000-0000-0000-0000-000000000000"
+
+secrets:
+  create: true
+  # placeholders, dev only
+  values:
+    jwt-signing-key: "dev-only-signing-key-change-me-0123456789abcdef"
+    identity-db: "Host={{ .Release.Name }}-postgresql;Database=identity;Username=parcel;Password=parcel"
+    shipments-db: "Host={{ .Release.Name }}-postgresql;Database=shipments;Username=parcel;Password=parcel"
+    tracking-db-url: "postgres://parcel:parcel@{{ .Release.Name }}-postgresql:5432/tracking"
+    mongo-url: "mongodb://{{ .Release.Name }}-mongodb:27017"
+    redis-url: "redis://{{ .Release.Name }}-redis-master:6379"
+    seed-demo-password: "Demo@12345"
+
+ingress:
+  hosts:
+    web: parcel-trace.dev.example.com
+    api: api.parcel-trace.dev.example.com
+
+kafkaTopics:
+  enabled: true
+
+postgresql:
+  enabled: true
+  auth:
+    username: parcel
+    password: parcel
+    database: identity
+  primary:
+    initdb:
+      scripts:
+        databases.sql: |
+          CREATE DATABASE shipments OWNER parcel;
+          CREATE DATABASE tracking OWNER parcel;
+
+mongodb:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+kafka:
+  enabled: true
+  controller:
+    replicaCount: 1
+  listeners:
+    client:
+      protocol: PLAINTEXT
+  provisioning:
+    enabled: false

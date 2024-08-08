@@ -1,0 +1,73 @@
+global:
+  env:
+    ASPNETCORE_ENVIRONMENT: Production
+    # placeholder
+    Kafka__BootstrapServers: "kafka-prod.parcel-trace.internal:9092"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4317"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 192Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+services:
+  shipments:
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 65
+      targetMemoryUtilizationPercentage: 80
+  dispatch:
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+  tracking:
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 12
+      targetCPUUtilizationPercentage: 60
+  eta:
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+  gateway:
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+  frontend:
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+
+workloadIdentity:
+  enabled: true
+  # placeholder, the user-assigned identity of the prod cluster
+  clientId: "00000000-0000-0000-0000-000000000000"
+
+secrets:
+  create: false
+  # synced from Key Vault (CSI driver)
+  existingSecret: parcel-trace-secrets
+
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 1m
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    web: parcel-trace.example.com
+    api: api.parcel-trace.example.com
+  tls:
+    enabled: true
+    secretName: parcel-trace-tls
+
+kafkaTopics:
+  enabled: true
+  replicationFactor: 3
