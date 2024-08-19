@@ -1,0 +1,7 @@
+# copy to terraform.tfvars, placeholders only
+subscription_id         = "00000000-0000-0000-0000-000000000000"
+environment             = "dev"
+location                = "westeurope"
+kubernetes_version      = "1.29"
+mongo_connection_string = "mongodb://parcel-trace-mongodb:27017"
+redis_connection_string = "redis://parcel-trace-redis-master:6379"
