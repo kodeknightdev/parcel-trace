@@ -1,0 +1,58 @@
+# plan only, apply is done manually
+parameters:
+  - name: environment
+    type: string
+  - name: serviceConnection
+    type: string
+  - name: terraformVersion
+    type: string
+    default: 1.9.3
+
+jobs:
+  - job: terraform_${{ parameters.environment }}
+    displayName: Terraform plan (${{ parameters.environment }})
+    variables:
+      workingDirectory: $(System.DefaultWorkingDirectory)/infra/terraform/envs/${{ parameters.environment }}
+    steps:
+      - task: TerraformInstaller@1
+        displayName: Install Terraform ${{ parameters.terraformVersion }}
+        inputs:
+          terraformVersion: ${{ parameters.terraformVersion }}
+
+      - task: TerraformTaskV4@4
+        displayName: terraform init
+        inputs:
+          provider: azurerm
+          command: init
+          workingDirectory: $(workingDirectory)
+          backendServiceArm: ${{ parameters.serviceConnection }}
+          backendAzureRmResourceGroupName: $(tfStateResourceGroup)
+          backendAzureRmStorageAccountName: $(tfStateStorageAccount)
+          backendAzureRmContainerName: tfstate
+          backendAzureRmKey: ${{ parameters.environment }}.terraform.tfstate
+
+      - task: TerraformTaskV4@4
+        displayName: terraform validate
+        inputs:
+          provider: azurerm
+          command: validate
+          workingDirectory: $(workingDirectory)
+
+      - task: TerraformTaskV4@4
+        displayName: terraform plan
+        inputs:
+          provider: azurerm
+          command: plan
+          workingDirectory: $(workingDirectory)
+          environmentServiceNameAzureRM: ${{ parameters.serviceConnection }}
+          commandOptions: -input=false -out=$(Build.ArtifactStagingDirectory)/tfplan-${{ parameters.environment }}
+        env:
+          TF_VAR_subscription_id: $(azureSubscriptionId)
+          TF_VAR_mongo_connection_string: $(mongoConnectionString${{ parameters.environment }})
+          TF_VAR_redis_connection_string: $(redisConnectionString${{ parameters.environment }})
+
+      - task: PublishPipelineArtifact@1
+        displayName: Publish plan
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)/tfplan-${{ parameters.environment }}
+          artifact: tfplan-${{ parameters.environment }}

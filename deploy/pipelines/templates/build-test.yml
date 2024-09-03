@@ -1,0 +1,94 @@
+parameters:
+  - name: buildConfiguration
+    type: string
+    default: Release
+
+jobs:
+  - job: dotnet
+    displayName: .NET build & test
+    steps:
+      - task: UseDotNet@2
+        displayName: Use .NET SDK from global.json
+        inputs:
+          packageType: sdk
+          useGlobalJson: true
+
+      - task: DotNetCoreCLI@2
+        displayName: Restore
+        inputs:
+          command: restore
+          projects: ParcelTrace.sln
+
+      - task: DotNetCoreCLI@2
+        displayName: Build
+        inputs:
+          command: build
+          projects: ParcelTrace.sln
+          arguments: --no-restore -c ${{ parameters.buildConfiguration }}
+
+      # testcontainers needs docker (available on hosted ubuntu agents)
+      - task: DotNetCoreCLI@2
+        displayName: Test
+        inputs:
+          command: test
+          projects: ParcelTrace.sln
+          arguments: --no-build -c ${{ parameters.buildConfiguration }} --collect "XPlat Code Coverage" --results-directory $(Agent.TempDirectory)/TestResults
+          publishTestResults: true
+
+      - task: PublishCodeCoverageResults@2
+        displayName: Publish coverage
+        condition: succeededOrFailed()
+        inputs:
+          summaryFileLocation: $(Agent.TempDirectory)/TestResults/**/coverage.cobertura.xml
+
+  - job: node
+    displayName: tracking (Node) tests
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: 20.12.x
+      - script: npm ci && npx vitest run --reporter=default --reporter=junit --outputFile.junit=test-results.xml
+        displayName: npm ci & vitest
+        workingDirectory: src/services/tracking
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: JUnit
+          testResultsFiles: src/services/tracking/test-results.xml
+          testRunTitle: tracking
+
+  - job: python
+    displayName: eta (Python) tests
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.12"
+      - script: |
+          python -m pip install --upgrade pip==24.0
+          pip install -r requirements.txt
+          pytest --junitxml=test-results.xml
+        displayName: pip install & pytest
+        workingDirectory: src/services/eta
+      - task: PublishTestResults@2
+        condition: succeededOrFailed()
+        inputs:
+          testResultsFormat: JUnit
+          testResultsFiles: src/services/eta/test-results.xml
+          testRunTitle: eta
+
+  - job: deploy_lint
+    displayName: Lint compose & Helm
+    steps:
+      - task: HelmInstaller@1
+        inputs:
+          helmVersionToInstall: 3.15.2
+      - script: docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.override.yml config --quiet
+        displayName: docker compose config
+      - script: |
+          set -e
+          helm dependency build deploy/helm/parcel-trace
+          for v in dev prod local; do
+            helm lint deploy/helm/parcel-trace -f deploy/helm/parcel-trace/values-$v.yaml
+            helm template pt deploy/helm/parcel-trace -f deploy/helm/parcel-trace/values-$v.yaml > /dev/null
+          done
+        displayName: helm lint & template

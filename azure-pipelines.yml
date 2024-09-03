@@ -1,0 +1,118 @@
+# Build & Test -> Images -> Infra (plan) -> Deploy Dev -> Deploy Prod
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/*
+      - shared/*
+      - tests/*
+      - tools/*
+      - deploy/*
+      - infra/*
+      - azure-pipelines.yml
+      - Directory.Build.props
+      - Directory.Packages.props
+      - global.json
+    exclude:
+      - '**/*.md'
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/*
+      - shared/*
+      - tests/*
+      - deploy/*
+      - infra/*
+      - azure-pipelines.yml
+      - Directory.Packages.props
+
+parameters:
+  # Terraform is optional: off by default, the cluster, registry and databases are expected to exist
+  # (names come from the parcel-trace-common variable group)
+  - name: provisionInfra
+    displayName: Run the Terraform plan stage
+    type: boolean
+    default: false
+
+variables:
+  - group: parcel-trace-common
+  - name: buildConfiguration
+    value: Release
+  - name: imageTag
+    value: $(Build.BuildId)
+  - name: isMain
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+
+pool:
+  vmImage: ubuntu-22.04
+
+stages:
+  - stage: BuildTest
+    displayName: Build & Test
+    jobs:
+      - template: deploy/pipelines/templates/build-test.yml
+        parameters:
+          buildConfiguration: $(buildConfiguration)
+
+  - stage: Images
+    displayName: Container images
+    dependsOn: BuildTest
+    condition: and(succeeded(), eq(variables.isMain, true))
+    jobs:
+      - template: deploy/pipelines/templates/docker-images.yml
+        parameters:
+          containerRegistry: acr-connection
+          tag: $(imageTag)
+
+  - ${{ if eq(parameters.provisionInfra, true) }}:
+    - stage: Infra
+      displayName: Infra (terraform plan)
+      dependsOn: BuildTest
+      jobs:
+        - template: deploy/pipelines/templates/terraform.yml
+          parameters:
+            environment: dev
+            serviceConnection: azure-arm-connection
+        - template: deploy/pipelines/templates/terraform.yml
+          parameters:
+            environment: prod
+            serviceConnection: azure-arm-connection
+
+  - stage: DeployDev
+    displayName: Deploy Dev
+    dependsOn:
+      - Images
+      - ${{ if eq(parameters.provisionInfra, true) }}:
+        - Infra
+    condition: and(succeeded(), eq(variables.isMain, true))
+    jobs:
+      - template: deploy/pipelines/templates/helm-deploy.yml
+        parameters:
+          environment: parcel-trace-dev
+          serviceConnection: azure-arm-connection
+          resourceGroup: $(aksResourceGroupDev)
+          cluster: $(aksClusterDev)
+          valuesFile: values-dev.yaml
+          tag: $(imageTag)
+
+  - stage: DeployProd
+    displayName: Deploy Prod
+    dependsOn: DeployDev
+    condition: and(succeeded(), eq(variables.isMain, true))
+    jobs:
+      # approval check is configured on the parcel-trace-prod environment
+      - template: deploy/pipelines/templates/helm-deploy.yml
+        parameters:
+          environment: parcel-trace-prod
+          serviceConnection: azure-arm-connection
+          resourceGroup: $(aksResourceGroupProd)
+          cluster: $(aksClusterProd)
+          valuesFile: values-prod.yaml
+          tag: $(imageTag)

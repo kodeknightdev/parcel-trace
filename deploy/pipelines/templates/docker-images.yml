@@ -1,0 +1,52 @@
+parameters:
+  - name: containerRegistry
+    type: string
+  - name: tag
+    type: string
+
+jobs:
+  - job: images
+    displayName: Build & push
+    strategy:
+      maxParallel: 4
+      matrix:
+        identity:
+          service: identity
+          dockerfile: src/services/identity/Dockerfile
+          context: .
+        shipments:
+          service: shipments
+          dockerfile: src/services/shipments/Dockerfile
+          context: .
+        dispatch:
+          service: dispatch
+          dockerfile: src/services/dispatch/Dockerfile
+          context: .
+        tracking:
+          service: tracking
+          dockerfile: src/services/tracking/Dockerfile
+          context: src/services/tracking
+        eta:
+          service: eta
+          dockerfile: src/services/eta/Dockerfile
+          context: src/services/eta
+        gateway:
+          service: gateway
+          dockerfile: src/gateway/Dockerfile
+          context: .
+        frontend:
+          service: frontend
+          dockerfile: src/razor-frontend/Dockerfile
+          context: .
+    steps:
+      - task: Docker@2
+        displayName: Build & push $(service)
+        inputs:
+          command: buildAndPush
+          containerRegistry: ${{ parameters.containerRegistry }}
+          repository: parcel-trace/$(service)
+          Dockerfile: $(dockerfile)
+          buildContext: $(context)
+          tags: |
+            ${{ parameters.tag }}
+            $(Build.SourceVersion)

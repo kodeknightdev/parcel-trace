@@ -1,0 +1,51 @@
+# deployment job so environment approvals apply
+parameters:
+  - name: environment
+    type: string
+  - name: serviceConnection
+    type: string
+  - name: resourceGroup
+    type: string
+  - name: cluster
+    type: string
+  - name: valuesFile
+    type: string
+  - name: tag
+    type: string
+  - name: namespace
+    type: string
+    default: parcel-trace
+
+jobs:
+  - deployment: helm_${{ replace(parameters.environment, '-', '_') }}
+    displayName: Helm deploy (${{ parameters.environment }})
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+
+            - task: HelmInstaller@1
+              inputs:
+                helmVersionToInstall: 3.15.2
+
+            - script: helm dependency build deploy/helm/parcel-trace
+              displayName: helm dependency build
+
+            - task: HelmDeploy@0
+              displayName: helm upgrade --install
+              inputs:
+                connectionType: Azure Resource Manager
+                azureSubscription: ${{ parameters.serviceConnection }}
+                azureResourceGroup: ${{ parameters.resourceGroup }}
+                kubernetesCluster: ${{ parameters.cluster }}
+                namespace: ${{ parameters.namespace }}
+                command: upgrade
+                chartType: FilePath
+                chartPath: deploy/helm/parcel-trace
+                releaseName: parcel-trace
+                install: true
+                valueFile: deploy/helm/parcel-trace/${{ parameters.valuesFile }}
+                overrideValues: global.imageRegistry=$(acrLoginServer),global.imageTag=${{ parameters.tag }}
+                arguments: --create-namespace --atomic --timeout 10m
