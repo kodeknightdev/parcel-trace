@@ -61,6 +61,10 @@ Let simulated couriers accept offers and deliver the seeded parcels:
 cd tools/courier-simulator && node simulator.js --speed 300 --interval 1 --once
 ```
 
+To run on a local Kubernetes cluster (kind, Docker Desktop) instead, use the Helm chart with
+`values-local.yaml`; see `deploy/helm/parcel-trace/README.md`. Terraform is only needed to create
+the Azure resources and is optional.
+
 ## Seed data and demo logins
 
 In Development the services seed themselves on start: identity creates the demo accounts below,

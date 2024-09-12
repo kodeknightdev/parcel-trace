@@ -1,7 +1,8 @@
 # Any Kubernetes cluster (kind, Docker Desktop, minikube), no Azure:
 # in-cluster datastores, a plain Kubernetes Secret, no workload identity.
 #
-#   build the images with the tag "local" (see docs/deployment.md), then
+#   build the images with the tag "local", e.g. docker build -t parcel-trace/identity:local -f src/services/identity/Dockerfile .
+#   (kind: kind load docker-image parcel-trace/<svc>:local), then
 #   helm dependency build deploy/helm/parcel-trace
 #   helm upgrade --install pt deploy/helm/parcel-trace -f deploy/helm/parcel-trace/values-local.yaml -n parcel-trace --create-namespace
 global:
