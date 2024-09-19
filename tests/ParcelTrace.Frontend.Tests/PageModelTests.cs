@@ -213,9 +213,17 @@ public class PageModelTests
 
     private static CreateModel.ShipmentInput ValidInput() => new()
     {
-        SenderName = "Alice", SenderPhone = "+49 30 1234567", PickupLine1 = "Alexanderplatz 1", PickupPostalCode = "10178",
-        RecipientName = "Jonas", RecipientPhone = "+49 151 2345678", DropoffLine1 = "Kurfürstendamm 21", DropoffPostalCode = "10719",
-        WeightKg = 2.5m, ServiceLevel = ServiceLevel.Express, Notes = " "
+        SenderName = "Alice",
+        SenderPhone = "+49 30 1234567",
+        PickupLine1 = "Alexanderplatz 1",
+        PickupPostalCode = "10178",
+        RecipientName = "Jonas",
+        RecipientPhone = "+49 151 2345678",
+        DropoffLine1 = "Kurfürstendamm 21",
+        DropoffPostalCode = "10719",
+        WeightKg = 2.5m,
+        ServiceLevel = ServiceLevel.Express,
+        Notes = " "
     };
 
     private static ShipmentDto SampleShipment() => new(

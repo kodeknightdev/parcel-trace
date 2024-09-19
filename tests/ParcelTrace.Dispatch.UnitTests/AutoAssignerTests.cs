@@ -10,19 +10,19 @@ public class AutoAssignerTests
 
     private static Courier Courier(string name, double lat, double lng, VehicleType vehicle = VehicleType.Car, int active = 0,
         int max = 8, double load = 0, double capacity = 150, bool available = true, DateTime? seen = null, Position? last = null) => new()
-    {
-        Id = Guid.NewGuid(),
-        Name = name,
-        VehicleType = vehicle,
-        HomeBase = Position.From(lat, lng),
-        ActiveCount = active,
-        MaxActiveShipments = max,
-        CurrentLoadKg = load,
-        CapacityKg = capacity,
-        IsAvailable = available,
-        LastSeenAt = seen,
-        LastLocation = last
-    };
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            VehicleType = vehicle,
+            HomeBase = Position.From(lat, lng),
+            ActiveCount = active,
+            MaxActiveShipments = max,
+            CurrentLoadKg = load,
+            CapacityKg = capacity,
+            IsAvailable = available,
+            LastSeenAt = seen,
+            LastLocation = last
+        };
 
     [Fact]
     public void Picks_the_nearest_available_courier()
